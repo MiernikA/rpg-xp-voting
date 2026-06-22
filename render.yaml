@@ -28,4 +28,6 @@ services:
     dockerContext: ./frontend
     envVars:
       - key: VITE_API_URL
+        value: /api
+      - key: API_PROXY_TARGET
         sync: false
