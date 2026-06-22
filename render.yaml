@@ -1,9 +1,3 @@
-databases:
-  - name: rpg-xp-voting-db
-    plan: free
-    databaseName: rpg_xp_voting
-    user: rpg_xp_voting
-
 services:
   - type: web
     name: rpg-xp-voting-api
@@ -15,9 +9,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: rpg-xp-voting-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
