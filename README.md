@@ -6,7 +6,7 @@ Production-ready full-stack web app for tabletop RPG groups to distribute post-s
 
 - Backend: FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL, JWT, Pydantic v2
 - Frontend: React, TypeScript, Vite, Material UI, React Router, TanStack Query, Axios, Recharts
-- Infrastructure: Docker, Docker Compose, Render blueprint
+- Infrastructure: Docker, Docker Compose, Vercel, Neon Postgres, Render blueprint
 
 ## Features
 
@@ -106,6 +106,50 @@ npm run build
 - `GET /api/results/{session_id}/export.xlsx`
 - `GET /api/statistics/dashboard`
 - `GET /api/statistics`
+
+## Free Deployment: Vercel + Neon
+
+The free deployment path is:
+
+- Vercel Hobby for the React frontend and FastAPI serverless function
+- Neon Free for PostgreSQL
+
+Vercel serves the frontend from `frontend/dist` and rewrites `/api/*` to the Python function in `api/index.py`. The function runs Alembic migrations and seeds the configured admin account on cold start.
+
+1. Create a Neon project and copy the pooled PostgreSQL connection string.
+2. In Vercel, import this GitHub repository as a new project.
+3. Keep the default project root as the repository root.
+4. Use the included `vercel.json`; it builds the frontend with:
+
+```bash
+cd frontend && npm ci && npm run build
+```
+
+5. Set these Vercel environment variables for Production:
+
+```bash
+ENVIRONMENT=production
+DATABASE_URL=<neon pooled connection string>
+JWT_SECRET=<long random secret>
+CORS_ORIGINS=https://<your-vercel-project>.vercel.app
+ADMIN_USERNAME=<admin username>
+ADMIN_PASSWORD=<admin password>
+ADMIN_DISPLAY_NAME=Game Master
+ALLOW_REGISTRATION=false
+```
+
+6. Deploy from Vercel.
+7. After deploy, verify:
+
+- `https://<your-vercel-project>.vercel.app/api/healthz`
+- `https://<your-vercel-project>.vercel.app/api/auth/login`
+- admin login in the browser
+
+Notes:
+
+- The Neon Free plan has limited compute, storage, and egress. It is enough for a small private RPG group, but it can suspend when free limits are exceeded.
+- Vercel Hobby serverless functions have a short execution window, so avoid large imports, heavy reports, or very large exports.
+- If the app grows beyond the free limits, move the backend to a persistent service and keep Neon or another managed Postgres provider.
 
 ## Render Deployment
 

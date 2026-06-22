@@ -20,6 +20,7 @@ def main() -> None:
                 )
             )
         else:
+            admin.password_hash = hash_password(settings.admin_password)
             admin.role = UserRole.admin
             admin.is_active = True
         db.commit()
