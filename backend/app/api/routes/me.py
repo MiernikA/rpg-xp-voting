@@ -32,7 +32,9 @@ def my_info(user: User = Depends(current_user), db: Session = Depends(get_db)) -
                 joinedload(Vote.session).selectinload(VotingSession.participants),
                 joinedload(Vote.voter),
             )
+            .join(Vote.session)
             .where(Vote.recipient_id == user.id)
+            .where(VotingSession.results_published.is_(True))
         )
     )
     by_session: dict[int, list[Vote]] = defaultdict(list)
