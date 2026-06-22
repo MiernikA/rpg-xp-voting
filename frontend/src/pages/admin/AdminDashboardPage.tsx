@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import DownloadIcon from '@mui/icons-material/Download';
 import RestoreIcon from '@mui/icons-material/Restore';
 import {
   Alert,
@@ -72,6 +73,17 @@ export function AdminDashboardPage() {
     link.remove();
     URL.revokeObjectURL(url);
   };
+  const backupMutation = useMutation({
+    mutationFn: downloadBackup,
+    onSuccess: () => {
+      setMaintenanceError(null);
+      setMaintenanceMessage('Backup CSV downloaded. No system data was changed.');
+    },
+    onError: (error) => {
+      setMaintenanceMessage(null);
+      setMaintenanceError(getApiErrorMessage(error, 'Backup CSV could not be downloaded.'));
+    },
+  });
   const purgeMutation = useMutation({
     mutationFn: async () => {
       await downloadBackup();
@@ -435,15 +447,23 @@ export function AdminDashboardPage() {
                       variant="outlined"
                       startIcon={<RestoreIcon />}
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={restoreMutation.isPending || purgeMutation.isPending}
+                      disabled={backupMutation.isPending || restoreMutation.isPending || purgeMutation.isPending}
                     >
                       Choose backup CSV
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => backupMutation.mutate()}
+                      disabled={backupMutation.isPending || restoreMutation.isPending || purgeMutation.isPending}
+                    >
+                      Download backup CSV
                     </Button>
                     <Button
                       variant="contained"
                       startIcon={<RestoreIcon />}
                       onClick={() => restoreFile && restoreMutation.mutate(restoreFile)}
-                      disabled={!restoreFile || restoreMutation.isPending || purgeMutation.isPending}
+                      disabled={!restoreFile || backupMutation.isPending || restoreMutation.isPending || purgeMutation.isPending}
                     >
                       Restore backup
                     </Button>
@@ -456,7 +476,7 @@ export function AdminDashboardPage() {
                         setMaintenanceMessage(null);
                         setPurgeOpen(true);
                       }}
-                      disabled={restoreMutation.isPending || purgeMutation.isPending}
+                      disabled={backupMutation.isPending || restoreMutation.isPending || purgeMutation.isPending}
                     >
                       Remove all data
                     </Button>
