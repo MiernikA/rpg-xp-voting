@@ -41,6 +41,7 @@ export const router = createBrowserRouter([
           { path: '/admin/groups', element: <Navigate to="/admin/groups/manage" replace /> },
           { path: '/admin/groups/create', element: <CreateGroupPage /> },
           { path: '/admin/groups/manage', element: <GroupsPage /> },
+          { path: '/admin/groups/manage/:groupId', element: <GroupsPage /> },
           { path: '/admin/players', element: <PlayersPage /> },
           { path: '/admin/sessions', element: <Navigate to="/admin/groups/manage" replace /> },
           { path: '/admin/results', element: <Navigate to="/admin/groups/manage" replace /> },

@@ -33,6 +33,7 @@ import {
 } from '@mui/material';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as d3 from 'd3';
 
 import { endpoints } from '../../api/endpoints';
@@ -45,6 +46,17 @@ import { getApiErrorMessage } from '../../shared/api/apiError';
 type GroupWorkspacePage = 'edit' | 'sessions' | 'stats';
 
 const PAGE_MAX_WIDTH = 1280;
+const GROUP_WORKSPACE_PAGES: GroupWorkspacePage[] = ['edit', 'sessions', 'stats'];
+
+function parseUrlId(value: string | null) {
+  if (!value) return null;
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function isGroupWorkspacePage(value: string | null): value is GroupWorkspacePage {
+  return Boolean(value && GROUP_WORKSPACE_PAGES.includes(value as GroupWorkspacePage));
+}
 
 function GroupChartCard({
   title,
@@ -307,9 +319,10 @@ function GMSessionFlowGraph({
 
 export function GroupsPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { groupId: routeGroupId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [groupToManage, setGroupToManage] = useState<Group | null>(null);
-  const [managedGroupId, setManagedGroupId] = useState<number | null>(null);
-  const [workspacePage, setWorkspacePage] = useState<GroupWorkspacePage>('edit');
   const [sessionTitle, setSessionTitle] = useState('');
   const [sessionDescription, setSessionDescription] = useState('');
   const [pointsPool, setPointsPool] = useState(10);
@@ -317,10 +330,33 @@ export function GroupsPage() {
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
   const [groupImageUrl, setGroupImageUrl] = useState('');
-  const [selectedGmSessionId, setSelectedGmSessionId] = useState<number | null>(null);
-  const [selectedGmPlayerId, setSelectedGmPlayerId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const workspacePageParam = searchParams.get('tab');
+  const managedGroupId = parseUrlId(routeGroupId ?? searchParams.get('group'));
+  const workspacePage: GroupWorkspacePage = isGroupWorkspacePage(workspacePageParam) ? workspacePageParam : 'edit';
+  const selectedGmSessionId = parseUrlId(searchParams.get('gmSession'));
+  const selectedGmPlayerId = parseUrlId(searchParams.get('gmPlayer'));
+
+  const updateUrlState = (updates: Record<string, string | number | null>) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === '') {
+          next.delete(key);
+          return;
+        }
+        next.set(key, String(value));
+      });
+      return next;
+    });
+  };
+  const openGroupWorkspace = (groupId: number, tab: GroupWorkspacePage = 'edit') => {
+    navigate(`/admin/groups/manage/${groupId}?tab=${tab}`);
+  };
+  const closeGroupWorkspace = () => {
+    navigate('/admin/groups/manage');
+  };
 
   const { data: groups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['groups'],
@@ -351,10 +387,6 @@ export function GroupsPage() {
     setGroupDescription(selectedGroup?.description ?? '');
     setGroupImageUrl(selectedGroup?.image_url ?? '');
   }, [selectedGroup?.id, selectedGroup?.name, selectedGroup?.description, selectedGroup?.image_url]);
-
-  useEffect(() => {
-    setSelectedGmPlayerId(null);
-  }, [selectedGmSessionId]);
 
   const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
     queryKey: ['sessions', groupId],
@@ -526,7 +558,7 @@ export function GroupsPage() {
   const removeGroupMutation = useMutation({
     mutationFn: endpoints.removeGroup,
     onSuccess: () => {
-      setManagedGroupId(null);
+      closeGroupWorkspace();
       setGroupToManage(null);
       setError(null);
       setMessage('Group removed.');
@@ -568,7 +600,7 @@ export function GroupsPage() {
   const removeSessionMutation = useMutation({
     mutationFn: endpoints.removeSession,
     onSuccess: () => {
-      setSelectedGmSessionId(null);
+      updateUrlState({ gmSession: null, gmPlayer: null });
       setError(null);
       setMessage('Session removed. Its vote XP no longer counts.');
       refreshGroup();
@@ -739,8 +771,7 @@ export function GroupsPage() {
                     variant="contained"
                     disabled={!groupToManage}
                     onClick={() => {
-                      setManagedGroupId(groupToManage?.id ?? null);
-                      setWorkspacePage('edit');
+                      if (groupToManage) openGroupWorkspace(groupToManage.id);
                     }}
                     size="large"
                     fullWidth
@@ -787,11 +818,7 @@ export function GroupsPage() {
                 variant="contained"
                 color="inherit"
                 startIcon={<ArrowBackIcon />}
-                onClick={() => {
-                  setManagedGroupId(null);
-                  setSelectedGmSessionId(null);
-                  setWorkspacePage('edit');
-                }}
+                onClick={closeGroupWorkspace}
                 sx={{
                   bgcolor: '#f1f5f9',
                   color: '#334155',
@@ -814,7 +841,7 @@ export function GroupsPage() {
                   key={item.id}
                   variant={workspacePage === item.id ? 'contained' : 'outlined'}
                   startIcon={item.icon}
-                  onClick={() => setWorkspacePage(item.id as GroupWorkspacePage)}
+                  onClick={() => updateUrlState({ tab: item.id, gmSession: null, gmPlayer: null })}
                 >
                   {item.label}
                 </Button>
@@ -1185,7 +1212,7 @@ export function GroupsPage() {
                                   variant="outlined"
                                   startIcon={<AccountTreeIcon />}
                                   disabled={session.status !== 'closed'}
-                                  onClick={() => setSelectedGmSessionId(session.id)}
+                                  onClick={() => updateUrlState({ gmSession: session.id, gmPlayer: null })}
                                 >
                                   GM view
                                 </Button>
@@ -1358,7 +1385,7 @@ export function GroupsPage() {
       )}
       <Dialog
         open={Boolean(selectedGmSessionId)}
-        onClose={() => setSelectedGmSessionId(null)}
+        onClose={() => updateUrlState({ gmSession: null, gmPlayer: null })}
         fullWidth
         maxWidth="xl"
         PaperProps={{ sx: { maxHeight: '92dvh' } }}
@@ -1375,7 +1402,7 @@ export function GroupsPage() {
           </Stack>
           <IconButton
             aria-label="Close GM session view"
-            onClick={() => setSelectedGmSessionId(null)}
+            onClick={() => updateUrlState({ gmSession: null, gmPlayer: null })}
             sx={{ position: 'absolute', right: 12, top: 12 }}
           >
             <CloseIcon />
@@ -1391,7 +1418,7 @@ export function GroupsPage() {
                   data={gmView}
                   members={selectedGroup.members}
                   selectedPlayerId={selectedGmPlayer?.id ?? null}
-                  onSelectPlayer={setSelectedGmPlayerId}
+                  onSelectPlayer={(playerId) => updateUrlState({ gmPlayer: playerId })}
                 />
                 <Card variant="outlined">
                   <CardContent>
@@ -1431,7 +1458,7 @@ export function GroupsPage() {
                       <Card
                         key={playerCard.id}
                         variant="outlined"
-                        onClick={() => setSelectedGmPlayerId(playerCard.id)}
+                        onClick={() => updateUrlState({ gmPlayer: playerCard.id })}
                         sx={{
                           cursor: 'pointer',
                           borderColor: isSelected ? 'primary.main' : 'divider',

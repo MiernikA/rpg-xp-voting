@@ -12,6 +12,7 @@ from app.models.vote import Vote
 from app.models.voting_session import VotingSession
 from app.schemas.me import MyInfo, MySessionPoints
 from app.schemas.user import MeUpdate, UserRead
+from app.services.anonymity import anonymized_vote_comments
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -51,11 +52,7 @@ def my_info(user: User = Depends(current_user), db: Session = Depends(get_db)) -
                 group_name=session.group.name if session.group else None,
                 points_received=sum(vote.points for vote in session_votes),
                 max_points_available=session.points_pool * max(len(session.participants) - 1, 0),
-                comments=[
-                    f"{vote.voter.display_name}: {vote.justification}"
-                    for vote in session_votes
-                    if vote.justification
-                ],
+                comments=anonymized_vote_comments(session_votes),
             )
         )
 

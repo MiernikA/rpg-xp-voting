@@ -10,6 +10,7 @@ from app.core.errors import AppError
 from app.models.voting_session import VotingSession
 from app.repositories.sessions import VotingSessionRepository
 from app.repositories.votes import VoteRepository
+from app.services.anonymity import anonymized_vote_comments
 from app.schemas.results import (
     CommentRead,
     GMSessionView,
@@ -39,6 +40,7 @@ class ResultService:
         for recipient, received in by_recipient.items():
             voters = {vote.voter_id for vote in received}
             total = sum(vote.points for vote in received)
+            anonymous_comments = force_anonymous or session.anonymous_mode
             rows.append(
                 ResultRow(
                     player_id=recipient.id,
@@ -51,14 +53,21 @@ class ResultService:
                     number_of_voters=len(voters),
                     percentage_of_points=round((total / total_distributed) * 100, 2),
                     xp_awarded=total,
-                    comments=[
-                        ResultComment(
-                            author=None if force_anonymous or session.anonymous_mode else vote.voter.display_name,
-                            text=vote.justification,
-                        )
-                        for vote in received
-                        if vote.justification
-                    ],
+                    comments=(
+                        [
+                            ResultComment(author=None, text=comment)
+                            for comment in anonymized_vote_comments(received)
+                        ]
+                        if anonymous_comments
+                        else [
+                            ResultComment(
+                                author=vote.voter.display_name,
+                                text=vote.justification,
+                            )
+                            for vote in received
+                            if vote.justification
+                        ]
+                    ),
                     gm_notes=[
                         ResultComment(
                             author=None if force_anonymous or session.anonymous_mode else vote.voter.display_name,
