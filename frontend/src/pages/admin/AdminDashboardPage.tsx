@@ -20,6 +20,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 import { endpoints } from '../../api/endpoints';
 import { LoadingState } from '../../shared/ui/LoadingState';
@@ -28,6 +29,7 @@ import { getApiErrorMessage } from '../../shared/api/apiError';
 
 export function AdminDashboardPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [purgeConfirmation, setPurgeConfirmation] = useState('');
@@ -287,6 +289,13 @@ export function AdminDashboardPage() {
                 return (
                   <Box
                     key={session.id}
+                    component={session.group_id ? 'button' : 'div'}
+                    type={session.group_id ? 'button' : undefined}
+                    onClick={() => {
+                      if (session.group_id) {
+                        navigate(`/admin/groups/manage/${session.group_id}/sessions?gmSession=${session.id}`);
+                      }
+                    }}
                     sx={{
                       display: 'grid',
                       gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1.5fr) repeat(3, minmax(110px, auto))' },
@@ -297,6 +306,18 @@ export function AdminDashboardPage() {
                       border: '1px solid #e6e8ef',
                       borderRadius: 1,
                       bgcolor: session.results_archived ? '#f8fafc' : '#ffffff',
+                      width: '100%',
+                      color: 'inherit',
+                      font: 'inherit',
+                      textAlign: 'left',
+                      cursor: session.group_id ? 'pointer' : 'default',
+                      transition: 'border-color 140ms ease, background-color 140ms ease',
+                      '&:hover': session.group_id
+                        ? { borderColor: 'primary.main', bgcolor: 'rgba(24,92,80,0.04)' }
+                        : undefined,
+                      '&:focus-visible': session.group_id
+                        ? { outline: '3px solid rgba(24,92,80,0.24)', outlineOffset: 2 }
+                        : undefined,
                     }}
                   >
                     <Stack sx={{ minWidth: 0 }}>

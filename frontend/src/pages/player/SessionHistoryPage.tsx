@@ -81,12 +81,13 @@ export function SessionHistoryPage() {
                   <Typography variant="h3" textAlign="center" sx={{ width: '100%', overflowWrap: 'anywhere' }}>
                     {session.session_title}
                   </Typography>
-                  <Chip
-                    label={session.participated ? 'You participated' : 'You did not participate'}
-                    color={session.participated ? 'success' : 'default'}
-                    size="small"
-                    sx={{ alignSelf: 'center', fontWeight: 800 }}
-                  />
+                  {!session.participated && (
+                    <Chip
+                      label="You did not participate"
+                      size="small"
+                      sx={{ alignSelf: 'center', fontWeight: 800 }}
+                    />
+                  )}
 
                   <Stack direction="row" spacing={1.5} justifyContent="space-between" alignItems="center">
                     <Box sx={{ minWidth: 0 }}>

@@ -23,15 +23,18 @@ export function AdminLayout() {
       sx={{
         minHeight: '100dvh',
         bgcolor: '#f7f7f8',
+        backgroundImage:
+          'radial-gradient(circle at 8% 0%, rgba(24,92,80,0.09), transparent 28%), radial-gradient(circle at 92% 4%, rgba(124,58,237,0.06), transparent 24%), linear-gradient(180deg, #ffffff 0%, #f7f7f8 300px)',
       }}
     >
       <AppBar
         elevation={0}
         position="sticky"
         sx={{
-          bgcolor: '#ffffff',
+          bgcolor: 'rgba(255,255,255,0.9)',
           color: 'text.primary',
           borderBottom: '1px solid #e5e7eb',
+          backdropFilter: 'blur(14px)',
         }}
       >
         <Toolbar
@@ -110,7 +113,8 @@ export function AdminLayout() {
                   bgcolor: '#111827',
                   color: '#ffffff',
                   borderColor: '#111827',
-                  boxShadow: 'none',
+                  boxShadow: '0 8px 18px rgba(17,24,39,0.14)',
+                  transform: 'translateY(-1px)',
                 },
                 '&:hover:not(.active)': {
                   bgcolor: '#f2f4f7',
@@ -131,9 +135,14 @@ export function AdminLayout() {
           py: { xs: 2.5, md: 3.5 },
           px: { xs: 2, sm: 3, md: 4 },
           '& .MuiCard-root': {
-            bgcolor: '#ffffff',
+            bgcolor: 'rgba(255,255,255,0.96)',
             borderColor: '#e6e8ef',
-            boxShadow: 'none',
+            boxShadow: '0 8px 24px rgba(17,24,39,0.035)',
+            transition: 'box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease',
+          },
+          '& .MuiCard-root:hover': {
+            borderColor: '#d8dde6',
+            boxShadow: '0 14px 32px rgba(17,24,39,0.07)',
           },
           '& .MuiGrid-container': { alignItems: 'stretch' },
         }}

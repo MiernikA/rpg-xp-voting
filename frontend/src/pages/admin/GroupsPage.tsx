@@ -258,25 +258,16 @@ export function GroupsPage() {
     })),
   });
 
-  const sessionStatusData = [
-    { label: 'Draft', value: sessions.filter((session) => session.status === 'draft').length },
-    { label: 'Active', value: sessions.filter((session) => session.status === 'active').length },
-    { label: 'Closed', value: closedSessions.length },
-  ].filter((item) => item.value > 0);
-  const publicationData = [
-    { label: 'Published', value: sessions.filter((session) => session.results_published && !session.results_archived).length },
-    { label: 'Archived', value: sessions.filter((session) => session.results_archived).length },
-    { label: 'Unpublished', value: sessions.filter((session) => !session.results_published).length },
-  ].filter((item) => item.value > 0);
-  const participationData = sessions
-    .filter((session) => session.status !== 'draft')
-    .map((session) => {
-      const progress = progressBySession.get(session.id);
-      return {
-        label: session.title,
-        value: progress?.completion_percentage ?? 0,
-      };
-    });
+  const participationData = (selectedGroup?.members ?? []).map((member) => ({
+    label: member.display_name,
+    value: closedSessions.length
+      ? Math.round(
+          (closedSessions.filter((session) => session.participant_ids.includes(member.id)).length
+            / closedSessions.length)
+            * 1000,
+        ) / 10
+      : 0,
+  }));
   const xpPoolData = sessions.map((session) => ({
     label: session.title,
     value: session.points_pool,
@@ -1041,41 +1032,6 @@ export function GroupsPage() {
               </Grid>
             </Grid>
 
-            <Card variant="outlined">
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Stack spacing={1.5}>
-                <Typography variant="h3">Results</Typography>
-                {!selectedSession && <Typography color="text.secondary">Close a group session to view results.</Typography>}
-                {selectedSession && results.length === 0 && (
-                  <Typography color="text.secondary">No vote results for {selectedSession.title} yet.</Typography>
-                )}
-                <Grid container spacing={1.25}>
-                  {results.map((row, index) => (
-                    <Grid item xs={12} sm={6} lg={4} key={row.player_id}>
-                      <Card variant="outlined" sx={{ height: '100%' }}>
-                        <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                          <Stack spacing={1}>
-                            <Typography color="text.secondary">Rank #{index + 1}</Typography>
-                            <Typography variant="h3">{row.player}</Typography>
-                            <Typography variant="h2">{row.xp_awarded} XP</Typography>
-                            <Typography color="text.secondary">
-                              {row.percentage_of_points}% - {row.number_of_voters} voters
-                            </Typography>
-                            {row.comments.slice(0, 2).map((comment) => (
-                              <Typography key={`${comment.author}-${comment.text}`} variant="body2">
-                                {comment.author ?? 'Anonymous'}: {comment.text}
-                              </Typography>
-                            ))}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Stack>
-              </CardContent>
-            </Card>
-
             </>
             )}
 
@@ -1110,7 +1066,7 @@ export function GroupsPage() {
               </Grid>
 
               <Grid container spacing={1.5}>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12}>
                   <Card variant="outlined" sx={{ height: '100%' }}>
                     <CardContent>
                       <Stack spacing={2}>
@@ -1148,17 +1104,11 @@ export function GroupsPage() {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={4}>
-                  <GroupChartCard title="Session Status" data={sessionStatusData} type="pie" />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <GroupChartCard title="Publishing Mix" data={publicationData} type="pie" />
-                </Grid>
               </Grid>
 
               <Grid container spacing={1.5}>
                 <Grid item xs={12} md={6}>
-                  <GroupChartCard title="Participation Rate" data={participationData} type="bar" />
+                  <GroupChartCard title="Player Participation Rate" data={participationData} type="bar" />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <GroupChartCard title="XP Pool Trend" data={xpPoolData} type="line" />
