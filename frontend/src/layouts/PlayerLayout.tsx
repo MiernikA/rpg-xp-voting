@@ -6,6 +6,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 import { useAuth } from '../hooks/useAuth';
+import { APP_VERSION } from '../shared/config/appVersion';
 
 export interface PlayerThemePreview {
   primary: string;
@@ -64,9 +65,14 @@ export function PlayerLayout() {
               <HowToVoteIcon sx={{ color: primary }} />
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="h3" component="h1" noWrap>
-                XP Voting
-              </Typography>
+              <Stack direction="row" spacing={0.75} alignItems="baseline">
+                <Typography variant="h3" component="h1" noWrap>
+                  XP Voting
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(248,250,252,0.68)', fontWeight: 800 }}>
+                  v{APP_VERSION}
+                </Typography>
+              </Stack>
             </Box>
           </Stack>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: '0 1 auto' }}>

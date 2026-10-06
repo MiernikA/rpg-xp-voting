@@ -6,6 +6,7 @@ import { AppBar, Avatar, Box, Button, Container, IconButton, Stack, Toolbar, Typ
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
+import { APP_VERSION } from '../shared/config/appVersion';
 
 const links = [
   { to: '/admin', label: 'Dashboard', icon: <DashboardIcon /> },
@@ -46,7 +47,12 @@ export function AdminLayout() {
           }}
         >
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h3">RPG XP Voting</Typography>
+            <Stack direction="row" spacing={1} alignItems="baseline">
+              <Typography variant="h3">RPG XP Voting</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={800}>
+                v{APP_VERSION}
+              </Typography>
+            </Stack>
             <Typography variant="body2" color="text.secondary">
               Game Master dashboard
             </Typography>

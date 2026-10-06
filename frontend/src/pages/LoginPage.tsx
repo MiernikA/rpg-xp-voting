@@ -4,6 +4,7 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
+import { APP_VERSION } from '../shared/config/appVersion';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -38,7 +39,12 @@ export function LoginPage() {
       <Stack spacing={2.5}>
         <Box>
           <LockIcon color="primary" sx={{ fontSize: 34, mb: 1 }} />
-          <Typography variant="h1">RPG XP Voting</Typography>
+          <Stack direction="row" spacing={1} alignItems="baseline">
+            <Typography variant="h1">RPG XP Voting</Typography>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>
+              v{APP_VERSION}
+            </Typography>
+          </Stack>
           <Typography color="text.secondary">Sign in to vote or manage the next session.</Typography>
         </Box>
         {error && <Alert severity="error">{error}</Alert>}
