@@ -22,21 +22,9 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { endpoints } from '../../api/endpoints';
-import { D3Chart } from '../../shared/ui/D3Chart';
 import { LoadingState } from '../../shared/ui/LoadingState';
 import { MetricCard } from '../../shared/ui/MetricCard';
 import { getApiErrorMessage } from '../../shared/api/apiError';
-
-function InlineStat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Box sx={{ height: '100%', minHeight: 74, border: '1px solid #edf0f5', borderRadius: 1, px: 1.25, py: 1 }}>
-      <Typography color="text.secondary" variant="body2" fontWeight={700}>
-        {label}
-      </Typography>
-      <Typography variant="h3">{value}</Typography>
-    </Box>
-  );
-}
 
 export function AdminDashboardPage() {
   const queryClient = useQueryClient();
@@ -119,47 +107,19 @@ export function AdminDashboardPage() {
   if (dashboardLoading || groupsLoading || playersLoading || sessionsLoading) return <LoadingState />;
 
   const activePlayers = players.filter((player) => player.role === 'player' && player.is_active);
-  const inactivePlayers = players.filter((player) => player.role === 'player' && !player.is_active);
-  const draftSessions = sessions.filter((session) => session.status === 'draft');
-  const activeSessions = sessions.filter((session) => session.status === 'active');
   const closedSessions = sessions.filter((session) => session.status === 'closed');
   const publishedSessions = sessions.filter((session) => session.results_published && !session.results_archived);
   const archivedSessions = sessions.filter((session) => session.results_archived);
-  const totalExpectedVotes = activeSessions.reduce((sum, session) => sum + session.participant_ids.length, 0);
   const activeCompletion =
     data?.active_session_id && data.total_players > 0
       ? Math.round((data.submitted_votes / data.total_players) * 100)
       : 0;
-  const totalMembersInGroups = groups.reduce((sum, group) => sum + group.members.length, 0);
-  const averageGroupSize = groups.length ? Math.round((totalMembersInGroups / groups.length) * 10) / 10 : 0;
-  const recentSessions = [...sessions]
-    .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
-    .slice(0, 6);
-  const largestGroups = [...groups]
-    .sort((left, right) => right.members.length - left.members.length)
-    .slice(0, 5);
-  const maxGroupSize = Math.max(...groups.map((group) => group.members.length), 1);
+  const historicalSessions = [...closedSessions].sort(
+    (left, right) =>
+      new Date(right.closed_at ?? right.created_at).getTime()
+      - new Date(left.closed_at ?? left.created_at).getTime(),
+  );
   const totalXpPool = sessions.reduce((sum, session) => sum + session.points_pool, 0);
-  const averageXpPool = sessions.length ? Math.round(totalXpPool / sessions.length) : 0;
-
-  const sessionStatusData = [
-    { label: 'Draft', value: draftSessions.length },
-    { label: 'Active', value: activeSessions.length },
-    { label: 'Closed', value: closedSessions.length },
-  ].filter((item) => item.value > 0);
-  const publishingData = [
-    { label: 'Published', value: publishedSessions.length },
-    { label: 'Archived', value: archivedSessions.length },
-    { label: 'Hidden', value: sessions.filter((session) => !session.results_published).length },
-  ].filter((item) => item.value > 0);
-  const playerStatusData = [
-    { label: 'ActivePlayer', value: activePlayers.length },
-    { label: 'Inactive', value: inactivePlayers.length },
-  ].filter((item) => item.value > 0);
-  const groupBars = largestGroups.map((group) => ({
-    label: group.name.length > 10 ? `${group.name.slice(0, 10)}...` : group.name,
-    value: group.members.length,
-  }));
 
   return (
     <Stack
@@ -185,7 +145,7 @@ export function AdminDashboardPage() {
       >
         <Stack spacing={0.5}>
           <Typography variant="h2">Dashboard</Typography>
-          <Typography color="text.secondary">Current voting activity and platform health.</Typography>
+          <Typography color="text.secondary">Session archive and long-term campaign overview.</Typography>
         </Stack>
         <Stack
           direction="row"
@@ -203,26 +163,20 @@ export function AdminDashboardPage() {
       </Stack>
 
       <Grid container spacing={1.25}>
-        <Grid item xs={12} md={3}>
-          <MetricCard label="Active Session" value={data?.active_session_title ?? 'None'} />
+        <Grid item xs={6} md={2.4}>
+          <MetricCard label="Completed" value={closedSessions.length} helper={`${sessions.length} total sessions`} />
         </Grid>
-        <Grid item xs={6} sm={4} md={1.5}>
-          <MetricCard label="Voted" value={data?.submitted_votes ?? 0} />
+        <Grid item xs={6} md={2.4}>
+          <MetricCard label="Archived" value={archivedSessions.length} helper="stored results" />
         </Grid>
-        <Grid item xs={6} sm={4} md={1.5}>
-          <MetricCard label="Pending" value={data?.pending_players ?? 0} />
+        <Grid item xs={6} md={2.4}>
+          <MetricCard label="Published" value={publishedSessions.length} helper="visible results" />
         </Grid>
-        <Grid item xs={6} sm={4} md={1.5}>
-          <MetricCard label="Vote Lines" value={data?.total_votes ?? 0} />
+        <Grid item xs={6} md={2.4}>
+          <MetricCard label="Historical XP" value={totalXpPool} helper="all session pools" />
         </Grid>
-        <Grid item xs={6} sm={4} md={1.5}>
-          <MetricCard label="Groups" value={groups.length} helper={`${averageGroupSize} avg`} />
-        </Grid>
-        <Grid item xs={6} sm={4} md={1.5}>
-          <MetricCard label="Published" value={publishedSessions.length} helper={`${archivedSessions.length} archived`} />
-        </Grid>
-        <Grid item xs={6} sm={4} md={1.5}>
-          <MetricCard label="Avg XP" value={averageXpPool} helper="per session" />
+        <Grid item xs={6} md={2.4}>
+          <MetricCard label="Vote Lines" value={data?.total_votes ?? 0} helper="historical votes" />
         </Grid>
       </Grid>
 
@@ -257,171 +211,126 @@ export function AdminDashboardPage() {
         </DialogActions>
       </Dialog>
 
-      <Grid container spacing={1.25}>
-        <Grid item xs={12} lg={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent sx={{ height: '100%', p: 1.75, '&:last-child': { pb: 1.75 } }}>
-              <Stack spacing={1.25} sx={{ height: '100%' }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-                  <Stack sx={{ minWidth: 0 }}>
-                    <Typography variant="h3">Active Voting</Typography>
-                    <Typography color="text.secondary" noWrap>
-                      {data?.active_session_title ?? 'No active session'}
+      <Card variant="outlined">
+        <CardContent sx={{ p: 1.75, '&:last-child': { pb: 1.75 } }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={1.5}
+            alignItems={{ xs: 'stretch', md: 'center' }}
+          >
+            <Stack sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="h3">Active Session</Typography>
+              <Typography color="text.secondary" noWrap>
+                {data?.active_session_title ?? 'No active session is running'}
+              </Typography>
+            </Stack>
+            {data?.active_session_id ? (
+              <>
+                <Box sx={{ flex: { md: '0 1 360px' }, minWidth: { md: 260 } }}>
+                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                    <Typography variant="body2" fontWeight={800}>
+                      {activeCompletion}% complete
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {data.submitted_votes} voted · {data.pending_players} pending
                     </Typography>
                   </Stack>
-                  <Typography variant="h2">{activeCompletion}%</Typography>
-                </Stack>
-                <LinearProgress variant="determinate" value={activeCompletion} sx={{ height: 10, borderRadius: 999 }} />
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                    gap: 0.75,
-                    alignItems: 'stretch',
-                  }}
-                >
-                  <InlineStat label="Expected" value={totalExpectedVotes} />
-                  <InlineStat label="Done" value={data?.submitted_votes ?? 0} />
-                  <InlineStat label="Pending" value={data?.pending_players ?? 0} />
+                  <LinearProgress variant="determinate" value={activeCompletion} sx={{ height: 8, borderRadius: 999 }} />
                 </Box>
-                <Box sx={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', border: '1px dashed #edf0f5', borderRadius: 1, px: 1.5 }}>
-                  <Typography color="text.secondary" variant="body2" textAlign="center">
-                    {activeSessions.length > 0 ? 'Waiting for players to submit votes.' : 'No active session is running.'}
-                  </Typography>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
+                <Chip label="Active" color="success" sx={{ fontWeight: 800, alignSelf: { xs: 'flex-start', md: 'center' } }} />
+              </>
+            ) : (
+              <Chip label="Idle" sx={{ fontWeight: 800, alignSelf: { xs: 'flex-start', md: 'center' } }} />
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
 
-        <Grid item xs={12} sm={6} lg={2.5}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent sx={{ height: '100%', p: 1.75, '&:last-child': { pb: 1.75 } }}>
-              <Stack spacing={1} sx={{ height: '100%', justifyContent: 'space-between' }}>
-                <Typography variant="h3">Sessions</Typography>
-                {sessionStatusData.length > 0 ? <D3Chart data={sessionStatusData} type="donut" height={150} compact /> : <Typography color="text.secondary">No sessions.</Typography>}
-                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                  <Chip label={`${draftSessions.length} draft`} sx={{ height: 28, fontWeight: 800 }} />
-                  <Chip label={`${activeSessions.length} active`} color="success" sx={{ height: 28, fontWeight: 800 }} />
-                  <Chip label={`${closedSessions.length} closed`} color="warning" sx={{ height: 28, fontWeight: 800 }} />
-                </Stack>
+      <Card variant="outlined">
+        <CardContent sx={{ p: { xs: 1.75, md: 2.25 }, '&:last-child': { pb: { xs: 1.75, md: 2.25 } } }}>
+          <Stack spacing={1.5}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+              spacing={1}
+            >
+              <Stack spacing={0.25}>
+                <Typography variant="h3">Session Archive</Typography>
+                <Typography color="text.secondary" variant="body2">
+                  Completed sessions, publication state, participants, and historical XP pools.
+                </Typography>
               </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
+              <Chip label={`${historicalSessions.length} completed`} color="primary" sx={{ fontWeight: 800 }} />
+            </Stack>
 
-        <Grid item xs={12} sm={6} lg={2.5}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent sx={{ height: '100%', p: 1.75, '&:last-child': { pb: 1.75 } }}>
-              <Stack spacing={1} sx={{ height: '100%', justifyContent: 'space-between' }}>
-                <Typography variant="h3">Results</Typography>
-                {publishingData.length > 0 ? <D3Chart data={publishingData} type="donut" height={150} compact /> : <Typography color="text.secondary">No results.</Typography>}
-                <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                  <Chip label={`${publishedSessions.length} live`} color="primary" sx={{ height: 28, fontWeight: 800 }} />
-                  <Chip label={`${archivedSessions.length} archived`} sx={{ height: 28, fontWeight: 800 }} />
-                </Stack>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
+            {historicalSessions.length === 0 && (
+              <Box sx={{ py: 4, textAlign: 'center', border: '1px dashed #d0d5dd', borderRadius: 1 }}>
+                <Typography color="text.secondary">No completed sessions yet.</Typography>
+              </Box>
+            )}
 
-        <Grid item xs={12} lg={3}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent sx={{ height: '100%', p: 1.75, '&:last-child': { pb: 1.75 } }}>
-              <Stack spacing={1.25} sx={{ height: '100%' }}>
-                <Typography variant="h3">Group Load</Typography>
-                {groupBars.length > 0 ? <D3Chart data={groupBars} type="bar" height={150} compact /> : <Typography color="text.secondary">No groups.</Typography>}
-                {largestGroups.slice(0, 3).map((group) => (
-                  <Stack key={group.id} spacing={0.5}>
-                    <Stack direction="row" justifyContent="space-between" spacing={1}>
-                      <Typography variant="body2" fontWeight={800} noWrap>
-                        {group.name}
+            <Stack spacing={0.75} sx={{ maxHeight: 720, overflowY: 'auto', pr: historicalSessions.length > 6 ? 0.5 : 0 }}>
+              {historicalSessions.map((session) => {
+                const closedAt = session.closed_at ? new Date(session.closed_at) : null;
+                const resultLabel = session.results_archived
+                  ? 'Archived'
+                  : session.results_published
+                    ? 'Published'
+                    : 'Not published';
+                const resultColor = session.results_archived
+                  ? 'default'
+                  : session.results_published
+                    ? 'primary'
+                    : 'warning';
+
+                return (
+                  <Box
+                    key={session.id}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1.5fr) repeat(3, minmax(110px, auto))' },
+                      gap: { xs: 1, md: 2 },
+                      alignItems: 'center',
+                      px: { xs: 1.25, md: 1.75 },
+                      py: 1.25,
+                      border: '1px solid #e6e8ef',
+                      borderRadius: 1,
+                      bgcolor: session.results_archived ? '#f8fafc' : '#ffffff',
+                    }}
+                  >
+                    <Stack sx={{ minWidth: 0 }}>
+                      <Typography fontWeight={900} noWrap>
+                        {session.title}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {group.members.length}
+                      <Typography color="text.secondary" variant="body2" noWrap>
+                        {session.group_name ?? 'No group'}
                       </Typography>
                     </Stack>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(group.members.length / maxGroupSize) * 100}
-                      sx={{ height: 6, borderRadius: 999 }}
-                    />
-                  </Stack>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={1.25}>
-        <Grid item xs={12} md={4}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent sx={{ height: '100%', p: 1.75, '&:last-child': { pb: 1.75 } }}>
-              <Stack spacing={1.25} sx={{ height: '100%' }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-                  <Typography variant="h3">Players</Typography>
-                  <Chip label={`${players.length} accounts`} sx={{ height: 28, fontWeight: 800 }} />
-                </Stack>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', sm: 'minmax(120px, 0.9fr) minmax(0, 1fr)' },
-                    alignItems: 'center',
-                    gap: 1.25,
-                    flex: 1,
-                  }}
-                >
-                  <Box sx={{ minHeight: 136 }}>
-                    {playerStatusData.length > 0 ? (
-                      <D3Chart data={playerStatusData} type="donut" height={136} compact />
-                    ) : (
-                      <Typography color="text.secondary">No players.</Typography>
-                    )}
+                    <Stack>
+                      <Typography color="text.secondary" variant="caption" fontWeight={800}>
+                        CLOSED
+                      </Typography>
+                      <Typography variant="body2" fontWeight={800}>
+                        {closedAt ? closedAt.toLocaleDateString() : 'Unknown date'}
+                      </Typography>
+                    </Stack>
+                    <Stack>
+                      <Typography color="text.secondary" variant="caption" fontWeight={800}>
+                        SESSION
+                      </Typography>
+                      <Typography variant="body2" fontWeight={800}>
+                        {session.participant_ids.length} players · {session.points_pool} XP
+                      </Typography>
+                    </Stack>
+                    <Chip label={resultLabel} color={resultColor} size="small" sx={{ fontWeight: 800, justifySelf: { md: 'end' } }} />
                   </Box>
-                  <Stack spacing={0.75}>
-                    <InlineStat label="Active" value={activePlayers.length} />
-                    <InlineStat label="Inactive" value={inactivePlayers.length} />
-                  </Stack>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent sx={{ height: '100%', p: 1.75, '&:last-child': { pb: 1.75 } }}>
-              <Stack spacing={1.25} sx={{ height: '100%' }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-                  <Typography variant="h3">Recent Sessions</Typography>
-                  <Chip label={`${totalXpPool} total XP pool`} sx={{ height: 30, fontWeight: 800, flex: '0 0 auto' }} />
-                </Stack>
-                {recentSessions.length === 0 && <Typography color="text.secondary">No sessions yet.</Typography>}
-                <Grid container spacing={0.75}>
-                  {recentSessions.map((session) => (
-                    <Grid item xs={12} sm={6} key={session.id}>
-                      <Box sx={{ width: '100%', minHeight: 58, border: '1px solid #edf0f5', borderRadius: 1, p: 1 }}>
-                        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-                          <Stack sx={{ minWidth: 0 }}>
-                            <Typography fontWeight={900} noWrap>
-                              {session.title}
-                            </Typography>
-                            <Typography color="text.secondary" variant="body2" noWrap>
-                              {session.group_name ?? 'No group'} - {session.points_pool} XP
-                            </Typography>
-                          </Stack>
-                          <Chip label={session.status} sx={{ height: 28, fontWeight: 800 }} />
-                        </Stack>
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                );
+              })}
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={1.25}>
         <Grid item xs={12}>

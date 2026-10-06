@@ -23,24 +23,25 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   Grid,
   IconButton,
   LinearProgress,
   Paper,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import * as d3 from 'd3';
 
 import { endpoints } from '../../api/endpoints';
 import { D3Chart } from '../../shared/ui/D3Chart';
 import { LoadingState } from '../../shared/ui/LoadingState';
 import { MetricCard } from '../../shared/ui/MetricCard';
-import type { ChartPoint, GMSessionView, Group, Player, ResultRow, VotingSessionCreate } from '../../types/api';
+import type { ChartPoint, Group, Player, ResultRow, VotingSessionCreate } from '../../types/api';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 
 type GroupWorkspacePage = 'edit' | 'sessions' | 'stats';
@@ -83,240 +84,6 @@ function GroupChartCard({
   );
 }
 
-function GMSessionFlowGraph({
-  data,
-  members,
-  selectedPlayerId,
-  onSelectPlayer,
-}: {
-  data: GMSessionView;
-  members: Player[];
-  selectedPlayerId: number | null;
-  onSelectPlayer: (playerId: number) => void;
-}) {
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const width = 980;
-  const height = 520;
-
-  useEffect(() => {
-    if (!svgRef.current) return;
-
-    type GraphNode = { id: number; name: string; color: string; x: number; y: number };
-    type GraphLink = {
-      id: string;
-      source: number;
-      target: number;
-      points: number;
-      selected: boolean;
-      curveOffset: number;
-    };
-
-    const playerNames = new Map<number, string>();
-    members.forEach((member) => playerNames.set(member.id, member.display_name));
-    data.votes.forEach((vote) => {
-      playerNames.set(vote.voter_id, vote.voter);
-      playerNames.set(vote.recipient_id, vote.recipient);
-    });
-
-    const playerEntries = Array.from(playerNames.entries());
-    const layoutRadius = Math.min(width, height) * 0.36;
-    const nodes: GraphNode[] = playerEntries.map(([id, name], index) => {
-      const angle = playerEntries.length <= 1 ? 0 : (index / playerEntries.length) * Math.PI * 2 - Math.PI / 2;
-      return {
-        id,
-        name,
-        color: selectedPlayerId === id ? '#7c3aed' : '#185c50',
-        x: width / 2 + Math.cos(angle) * layoutRadius,
-        y: height / 2 + Math.sin(angle) * layoutRadius,
-      };
-    });
-    const nodeById = new Map(nodes.map((nodeDatum) => [nodeDatum.id, nodeDatum]));
-    const pointsByDirection = new Map<string, number>();
-    data.votes
-      .filter((vote) => playerNames.has(vote.voter_id) && playerNames.has(vote.recipient_id))
-      .forEach((vote) => {
-        const key = `${vote.voter_id}->${vote.recipient_id}`;
-        pointsByDirection.set(key, (pointsByDirection.get(key) ?? 0) + vote.points);
-      });
-    const links: GraphLink[] = [];
-    playerEntries.forEach(([sourceId], sourceIndex) => {
-      playerEntries.slice(sourceIndex + 1).forEach(([targetId]) => {
-        const sourceToTargetKey = `${sourceId}->${targetId}`;
-        const targetToSourceKey = `${targetId}->${sourceId}`;
-        links.push({
-          id: sourceToTargetKey,
-          source: sourceId,
-          target: targetId,
-          points: pointsByDirection.get(sourceToTargetKey) ?? 0,
-          selected: !selectedPlayerId || selectedPlayerId === sourceId || selectedPlayerId === targetId,
-          curveOffset: 78,
-        });
-        links.push({
-          id: targetToSourceKey,
-          source: targetId,
-          target: sourceId,
-          points: pointsByDirection.get(targetToSourceKey) ?? 0,
-          selected: !selectedPlayerId || selectedPlayerId === sourceId || selectedPlayerId === targetId,
-          curveOffset: -78,
-        });
-      });
-    });
-    const nodeRadius = 34;
-
-    const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
-    svg.attr('viewBox', `0 0 ${width} ${height}`);
-
-    svg
-      .append('defs')
-      .selectAll('marker')
-      .data([{ id: 'gm-d3-arrow', color: '#111827' }])
-      .join('marker')
-      .attr('id', (marker) => marker.id)
-      .attr('viewBox', '0 -7 14 14')
-      .attr('refX', 14)
-      .attr('refY', 0)
-      .attr('markerWidth', 14)
-      .attr('markerHeight', 14)
-      .attr('markerUnits', 'userSpaceOnUse')
-      .attr('orient', 'auto')
-      .append('path')
-      .attr('d', 'M0,-7L14,0L0,7Z')
-      .attr('fill', (marker) => marker.color);
-
-    const linkLayer = svg.append('g');
-    const labelLayer = svg.append('g');
-    const nodeLayer = svg.append('g');
-
-    const link = linkLayer
-      .selectAll('path')
-      .data(links)
-      .join('path')
-      .attr('fill', 'none')
-      .attr('stroke', '#111827')
-      .attr('stroke-opacity', (linkDatum) => (linkDatum.selected ? 0.76 : 0.18))
-      .attr('stroke-width', 5)
-      .attr('stroke-linecap', 'round')
-      .attr('marker-end', 'url(#gm-d3-arrow)');
-
-    const label = labelLayer
-      .selectAll('text')
-      .data(links)
-      .join('text')
-      .attr('text-anchor', 'middle')
-      .attr('font-size', 13)
-      .attr('font-weight', 900)
-      .attr('fill', '#111827')
-      .attr('paint-order', 'stroke')
-      .attr('stroke', '#ffffff')
-      .attr('stroke-width', 5)
-      .text((linkDatum) => `${linkDatum.points} XP`);
-
-    const node = nodeLayer
-      .selectAll('g')
-      .data(nodes)
-      .join('g')
-      .attr('cursor', 'pointer')
-      .on('click', (_event, nodeDatum) => onSelectPlayer(nodeDatum.id));
-
-    node
-      .append('circle')
-      .attr('r', nodeRadius)
-      .attr('fill', (nodeDatum) => nodeDatum.color)
-      .attr('stroke', '#ffffff')
-      .attr('stroke-width', 5);
-
-    node
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('y', 6)
-      .attr('font-size', 16)
-      .attr('font-weight', 900)
-      .attr('fill', '#ffffff')
-      .text((nodeDatum) => nodeDatum.name.charAt(0));
-
-    node
-      .append('text')
-      .attr('text-anchor', 'middle')
-      .attr('y', 52)
-      .attr('font-size', 13)
-      .attr('font-weight', 900)
-      .attr('fill', '#111827')
-      .text((nodeDatum) => nodeDatum.name);
-
-    const linePath = (linkDatum: GraphLink) => {
-      const source = nodeById.get(linkDatum.source);
-      const target = nodeById.get(linkDatum.target);
-      if (!source || !target) return '';
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
-      const distance = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const offset = nodeRadius + 12;
-      const low = source.id < target.id ? source : target;
-      const high = source.id < target.id ? target : source;
-      const canonicalDx = high.x - low.x;
-      const canonicalDy = high.y - low.y;
-      const canonicalDistance = Math.max(Math.sqrt(canonicalDx * canonicalDx + canonicalDy * canonicalDy), 1);
-      const normalX = -canonicalDy / canonicalDistance;
-      const normalY = canonicalDx / canonicalDistance;
-      const endpointShift = linkDatum.curveOffset > 0 ? 13 : -13;
-      const sourceX = source.x + (dx / distance) * offset + normalX * endpointShift;
-      const sourceY = source.y + (dy / distance) * offset + normalY * endpointShift;
-      const targetX = target.x - (dx / distance) * offset + normalX * endpointShift;
-      const targetY = target.y - (dy / distance) * offset + normalY * endpointShift;
-      const controlX = (sourceX + targetX) / 2 + normalX * linkDatum.curveOffset;
-      const controlY = (sourceY + targetY) / 2 + normalY * linkDatum.curveOffset;
-      return `M${sourceX},${sourceY}Q${controlX},${controlY} ${targetX},${targetY}`;
-    };
-
-    const curveMidpoint = (linkDatum: GraphLink) => {
-      const source = nodeById.get(linkDatum.source);
-      const target = nodeById.get(linkDatum.target);
-      if (!source || !target) return { x: width / 2, y: height / 2 };
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
-      const distance = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-      const offset = nodeRadius + 12;
-      const low = source.id < target.id ? source : target;
-      const high = source.id < target.id ? target : source;
-      const canonicalDx = high.x - low.x;
-      const canonicalDy = high.y - low.y;
-      const canonicalDistance = Math.max(Math.sqrt(canonicalDx * canonicalDx + canonicalDy * canonicalDy), 1);
-      const normalX = -canonicalDy / canonicalDistance;
-      const normalY = canonicalDx / canonicalDistance;
-      const endpointShift = linkDatum.curveOffset > 0 ? 13 : -13;
-      const sourceX = source.x + (dx / distance) * offset + normalX * endpointShift;
-      const sourceY = source.y + (dy / distance) * offset + normalY * endpointShift;
-      const targetX = target.x - (dx / distance) * offset + normalX * endpointShift;
-      const targetY = target.y - (dy / distance) * offset + normalY * endpointShift;
-      const controlX = (sourceX + targetX) / 2 + normalX * linkDatum.curveOffset;
-      const controlY = (sourceY + targetY) / 2 + normalY * linkDatum.curveOffset;
-      return {
-        x: (sourceX + 2 * controlX + targetX) / 4,
-        y: (sourceY + 2 * controlY + targetY) / 4,
-      };
-    };
-
-    const render = () => {
-      link.attr('d', linePath);
-
-      label
-        .attr('x', (linkDatum) => curveMidpoint(linkDatum).x)
-        .attr('y', (linkDatum) => curveMidpoint(linkDatum).y - 8);
-
-      node.attr('transform', (nodeDatum) => `translate(${nodeDatum.x},${nodeDatum.y})`);
-    };
-
-    render();
-  }, [data, members, onSelectPlayer, selectedPlayerId]);
-
-  return (
-    <Box sx={{ width: '100%', overflowX: 'auto', border: '1px solid #edf0f5', borderRadius: 1, bgcolor: '#fff' }}>
-      <Box component="svg" ref={svgRef} sx={{ width: '100%', minWidth: 880, height }} />
-    </Box>
-  );
-}
-
 export function GroupsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -331,6 +98,7 @@ export function GroupsPage() {
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
   const [groupImageUrl, setGroupImageUrl] = useState('');
+  const [showGmUsernames, setShowGmUsernames] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const workspacePageParam = routeWorkspacePage ?? searchParams.get('tab');
@@ -440,6 +208,10 @@ export function GroupsPage() {
     return Array.from(playerNames.entries()).map(([id, name]) => ({ id, name }));
   }, [gmView?.votes, selectedGroup?.members]);
   const selectedGmPlayer = gmPlayers.find((player) => player.id === selectedGmPlayerId) ?? gmPlayers[0];
+  const gmPlayerLabel = (playerId: number, displayName: string) =>
+    showGmUsernames
+      ? selectedGroup?.members.find((member) => member.id === playerId)?.username ?? displayName
+      : displayName;
   const gmRankingCards = useMemo(() => {
     if (!gmView) return [];
     return gmPlayers
@@ -1433,10 +1205,23 @@ export function GroupsPage() {
             <Stack>
               <Typography variant="h3">GM Session View</Typography>
               <Typography color="text.secondary">
-                {gmSession ? `${gmSession.title} vote flow` : 'Close a session to inspect the full vote flow.'}
+                {gmSession ? `${gmSession.title} vote details` : 'Close a session to inspect its vote details.'}
               </Typography>
             </Stack>
-            {gmView && <Chip label={`${gmView.total_points} XP assigned`} color="primary" sx={{ fontWeight: 800, alignSelf: { xs: 'flex-start', sm: 'center' } }} />}
+            {gmView && (
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
+                <FormControlLabel
+                  control={(
+                    <Switch
+                      checked={showGmUsernames}
+                      onChange={(event) => setShowGmUsernames(event.target.checked)}
+                    />
+                  )}
+                  label={showGmUsernames ? 'Usernames' : 'Display names'}
+                />
+                <Chip label={`${gmView.total_points} XP assigned`} color="primary" sx={{ fontWeight: 800 }} />
+              </Stack>
+            )}
           </Stack>
           <IconButton
             aria-label="Close GM session view"
@@ -1452,12 +1237,6 @@ export function GroupsPage() {
             {gmSession && !gmView && <Typography color="text.secondary">No vote details loaded yet.</Typography>}
             {gmView && selectedGroup && (
               <>
-                <GMSessionFlowGraph
-                  data={gmView}
-                  members={selectedGroup.members}
-                  selectedPlayerId={selectedGmPlayer?.id ?? null}
-                  onSelectPlayer={(playerId) => updateUrlState({ gmPlayer: playerId })}
-                />
                 <Card variant="outlined">
                   <CardContent>
                     <Stack spacing={1.25}>
@@ -1474,7 +1253,9 @@ export function GroupsPage() {
                         {gmPrivateNotes.map((entry) => (
                           <Grid item xs={12} md={6} key={entry.playerId}>
                             <Box sx={{ p: 1.25, borderRadius: 2, border: '1px solid rgba(124,58,237,0.18)', bgcolor: 'rgba(124,58,237,0.06)' }}>
-                              <Typography fontWeight={900} sx={{ mb: 0.75 }}>{entry.player}</Typography>
+                              <Typography fontWeight={900} sx={{ mb: 0.75 }}>
+                                {gmPlayerLabel(entry.playerId, entry.player)}
+                              </Typography>
                               <Stack component="ul" spacing={0.75} sx={{ m: 0, p: 0, listStyle: 'none' }}>
                                 {entry.notes.map((note) => (
                                   <Typography component="li" key={note} variant="body2">
@@ -1517,11 +1298,11 @@ export function GroupsPage() {
                                     fontWeight: 900,
                                   }}
                                 >
-                                  {playerCard.name.charAt(0)}
+                                  {gmPlayerLabel(playerCard.id, playerCard.name).charAt(0)}
                                 </Avatar>
                                 <Box sx={{ minWidth: 0 }}>
                                   <Typography variant="h3" noWrap>
-                                    #{index + 1} {playerCard.name}
+                                    #{index + 1} {gmPlayerLabel(playerCard.id, playerCard.name)}
                                   </Typography>
                                   <Typography color="text.secondary" variant="body2" noWrap>
                                     {playerCard.incoming.length} received comments, {playerCard.gmNotes.length} GM notes
@@ -1556,7 +1337,7 @@ export function GroupsPage() {
                                     }}
                                   >
                                     <Typography fontWeight={900} variant="body2">
-                                      {vote.voter} gave {vote.points} EXP
+                                      {gmPlayerLabel(vote.voter_id, vote.voter)} gave {vote.points} EXP
                                     </Typography>
                                     <Typography variant="body2" color={vote.justification ? 'text.primary' : 'text.secondary'}>
                                       {vote.justification || 'No player comment.'}
@@ -1592,7 +1373,8 @@ export function GroupsPage() {
                           <Grid item xs={12} md={6} key={vote.id}>
                             <Box sx={{ p: 1.25, border: '1px solid #edf0f5', borderRadius: 1 }}>
                               <Typography fontWeight={900}>
-                                {vote.voter} gave {vote.points} XP to {vote.recipient}
+                                {gmPlayerLabel(vote.voter_id, vote.voter)} gave {vote.points} XP to{' '}
+                                {gmPlayerLabel(vote.recipient_id, vote.recipient)}
                               </Typography>
                               {vote.justification ? (
                                 <Typography variant="body2">{vote.justification}</Typography>
