@@ -407,61 +407,6 @@ export function MyInfoPage() {
           </CardContent>
         </Card>
 
-        <Stack spacing={1.5}>
-          <Typography variant="h3" sx={{ color: '#f8fafc' }}>
-            Point History
-          </Typography>
-          {data.history.length === 0 && (
-            <Card variant="outlined">
-              <CardContent>
-                <Typography color="text.secondary">No awarded points yet.</Typography>
-              </CardContent>
-            </Card>
-          )}
-          <Stack
-            spacing={1}
-            sx={{
-              maxHeight: 520,
-              overflowY: 'auto',
-              pr: 0.5,
-            }}
-          >
-            {data.history.map((row) => (
-              <Card key={row.session_id} variant="outlined">
-                <CardContent sx={{ py: 2.25 }}>
-                  <Stack spacing={1.25}>
-                    <Stack direction="row" spacing={1.5} alignItems="flex-start" justifyContent="space-between">
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography fontWeight={900} noWrap>
-                          {row.session_title}
-                        </Typography>
-                        <Typography color="text.secondary" variant="body2">
-                          {row.group_name ?? 'No group'}
-                        </Typography>
-                      </Box>
-                      <Typography
-                        fontWeight={900}
-                        sx={{
-                          flex: '0 0 auto',
-                          px: 1.25,
-                          py: 0.5,
-                          borderRadius: 2,
-                          bgcolor: `${themePrimary}22`,
-                          color: 'text.primary',
-                        }}
-                      >
-                        {row.points_received} / {row.max_points_available} EXP
-                      </Typography>
-                    </Stack>
-                    <Typography color="text.secondary" variant="body2">
-                      You received {row.points_received} EXP out of {row.max_points_available} possible from other players.
-                    </Typography>
-                  </Stack>
-                </CardContent>
-              </Card>
-            ))}
-          </Stack>
-        </Stack>
       </Stack>
     </Container>
   );

@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -8,7 +6,6 @@ from app.api.deps import current_user
 from app.database.session import get_db
 from app.models.group import Group
 from app.models.user import User
-from app.models.vote import Vote
 from app.models.voting_session import VotingSession
 from app.schemas.me import MyInfo, MySessionPoints
 from app.schemas.user import MeUpdate, UserRead
@@ -25,38 +22,35 @@ def my_info(user: User = Depends(current_user), db: Session = Depends(get_db)) -
         .where(User.id == user.id)
     )
     user = loaded_user or user
-    votes = list(
+    sessions = list(
         db.scalars(
-            select(Vote)
+            select(VotingSession)
             .options(
-                joinedload(Vote.session).joinedload(VotingSession.group),
-                joinedload(Vote.session).selectinload(VotingSession.participants),
-                joinedload(Vote.voter),
+                joinedload(VotingSession.group),
+                selectinload(VotingSession.participants),
+                selectinload(VotingSession.votes),
             )
-            .join(Vote.session)
-            .where(Vote.recipient_id == user.id)
             .where(VotingSession.results_published.is_(True))
+            .where(VotingSession.participants.any(User.id == user.id))
+            .order_by(VotingSession.id.desc())
         )
     )
-    by_session: dict[int, list[Vote]] = defaultdict(list)
-    for vote in votes:
-        by_session[vote.session_id].append(vote)
 
     history = []
-    for session_votes in by_session.values():
-        session = session_votes[0].session
+    for voting_session in sessions:
+        received_votes = [vote for vote in voting_session.votes if vote.recipient_id == user.id]
         history.append(
             MySessionPoints(
-                session_id=session.id,
-                session_title=session.title,
-                group_name=session.group.name if session.group else None,
-                points_received=sum(vote.points for vote in session_votes),
-                max_points_available=session.points_pool * max(len(session.participants) - 1, 0),
-                comments=anonymized_vote_comments(session_votes),
+                session_id=voting_session.id,
+                session_title=voting_session.title,
+                group_name=voting_session.group.name if voting_session.group else None,
+                points_received=sum(vote.points for vote in received_votes),
+                max_points_available=voting_session.points_pool
+                * max(len(voting_session.participants) - 1, 0),
+                comments=anonymized_vote_comments(received_votes),
             )
         )
 
-    history.sort(key=lambda item: item.session_id, reverse=True)
     return MyInfo(
         user=UserRead.model_validate(user),
         groups=list(user.groups),

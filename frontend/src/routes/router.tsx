@@ -9,6 +9,7 @@ import { GroupsPage } from '../pages/admin/GroupsPage';
 import { PlayersPage } from '../pages/admin/PlayersPage';
 import { LoginPage } from '../pages/LoginPage';
 import { MyInfoPage } from '../pages/player/MyInfoPage';
+import { SessionHistoryPage } from '../pages/player/SessionHistoryPage';
 import { VotePage } from '../pages/player/VotePage';
 import { VoteSuccessPage } from '../pages/player/VoteSuccessPage';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -26,7 +27,8 @@ export const router = createBrowserRouter([
         children: [
           { path: '/vote', element: <VotePage /> },
           { path: '/vote/success', element: <VoteSuccessPage /> },
-          { path: '/me', element: <MyInfoPage /> },
+           { path: '/me', element: <MyInfoPage /> },
+           { path: '/history', element: <SessionHistoryPage /> },
         ],
       },
     ],

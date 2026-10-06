@@ -25,6 +25,8 @@ import { useNavigate } from 'react-router-dom';
 import { endpoints } from '../../api/endpoints';
 import { LoadingState } from '../../shared/ui/LoadingState';
 import { useActiveSession } from '../../hooks/useActiveSession';
+import { useAuth } from '../../hooks/useAuth';
+import { orderCommentsForPlayer } from '../../shared/lib/playerCommentOrder';
 import type { PublishedSessionResults, VoteLine } from '../../types/api';
 
 export function VotePage() {
@@ -375,6 +377,7 @@ function PublishedVoteResults({
   session: PublishedSessionResults | undefined;
   pointsPool: number;
 }) {
+  const { auth } = useAuth();
   if (!session) {
     return <LoadingState />;
   }
@@ -423,7 +426,14 @@ function PublishedVoteResults({
           </Typography>
         </Box>
         <Stack spacing={1.5}>
-          {session.results.map((row, index) => (
+          {session.results.map((row, index) => {
+            const comments = orderCommentsForPlayer(
+              row.comments,
+              auth?.user.id ?? 0,
+              session.session_id,
+              (comment) => comment.text,
+            );
+            return (
             <Card key={row.player_id} variant="outlined">
               <CardContent>
                 <Stack spacing={1.5}>
@@ -462,12 +472,12 @@ function PublishedVoteResults({
                       {row.xp_awarded} EXP
                     </Typography>
                   </Stack>
-                  {row.comments.length > 0 && (
+                  {comments.length > 0 && (
                     <Stack component="ul" spacing={0.75} sx={{ m: 0, p: 0, listStyle: 'none' }}>
-                      {row.comments.map((comment) => (
+                      {comments.map((comment, commentIndex) => (
                         <Typography
                           component="li"
-                          key={comment.text}
+                          key={`${comment.text}-${commentIndex}`}
                           variant="body2"
                           sx={{
                             px: 1.25,
@@ -485,7 +495,8 @@ function PublishedVoteResults({
                 </Stack>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </Stack>
       </Stack>
     </Container>

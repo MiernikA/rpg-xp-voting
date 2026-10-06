@@ -1,4 +1,5 @@
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import HistoryIcon from '@mui/icons-material/History';
 import InfoIcon from '@mui/icons-material/Info';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { AppBar, Avatar, Box, Button, IconButton, Stack, Toolbar, Typography } from '@mui/material';
@@ -128,6 +129,22 @@ export function PlayerLayout() {
             }}
           >
             Vote
+          </Button>
+          <Button
+            component={NavLink}
+            to="/history"
+            startIcon={<HistoryIcon />}
+            color="inherit"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              color: 'rgba(248,250,252,0.74)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              '&.active': { bgcolor: secondary, color: '#ffffff', borderColor: secondary },
+              '&:hover:not(.active)': { bgcolor: 'rgba(255,255,255,0.08)', boxShadow: 'none' },
+            }}
+          >
+            History
           </Button>
           <Button
             component={NavLink}
