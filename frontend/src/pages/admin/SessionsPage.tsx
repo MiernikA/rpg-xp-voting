@@ -215,7 +215,7 @@ export function SessionsPage() {
                     <Typography color="text.secondary">
                       Voted: {submittedVotes} / {totalPlayers}
                     </Typography>
-                    {session.results_published && (
+                    {(session.results_published || session.results_archived) && (
                       <Typography fontWeight={800} color="primary.main">
                         {session.results_archived ? 'Results archived' : 'Results published'}
                       </Typography>
@@ -251,7 +251,7 @@ export function SessionsPage() {
                     <Button
                       variant="outlined"
                       startIcon={<ArchiveIcon />}
-                      disabled={!session.results_published || session.results_archived || archiveMutation.isPending}
+                      disabled={session.status !== 'closed' || session.results_archived || archiveMutation.isPending}
                       onClick={() => archiveMutation.mutate(session.id)}
                     >
                       Archive session

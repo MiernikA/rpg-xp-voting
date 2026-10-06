@@ -99,8 +99,8 @@ class VotingSessionService:
         session = self.sessions.get(session_id)
         if session is None:
             raise AppError(status.HTTP_404_NOT_FOUND, "Voting session not found")
-        if not session.results_published:
-            raise AppError(status.HTTP_409_CONFLICT, "Only published results can be archived")
+        if session.status != SessionStatus.closed:
+            raise AppError(status.HTTP_409_CONFLICT, "Only closed sessions can be archived")
         session.results_archived = True
         self.db.commit()
         return session

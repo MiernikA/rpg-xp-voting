@@ -107,7 +107,7 @@ export function ResultsPage() {
             <Button
               startIcon={<ArchiveIcon />}
               variant="outlined"
-              disabled={!selectedSession?.results_published || selectedSession.results_archived || archiveMutation.isPending}
+              disabled={selectedSession?.status !== 'closed' || selectedSession.results_archived || archiveMutation.isPending}
               onClick={() => archiveMutation.mutate(selectedId)}
             >
               {selectedSession?.results_archived ? 'Archived' : 'Archive session'}
