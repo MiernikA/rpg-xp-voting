@@ -31,7 +31,6 @@ export function ResultsPage() {
     enabled: Boolean(selectedId),
     refetchInterval: selectedSession?.status === 'active' ? 5000 : false,
   });
-  const allVoted = Boolean(progress && progress.total_players > 0 && progress.submitted_votes >= progress.total_players);
   const publishMutation = useMutation({
     mutationFn: endpoints.publishResults,
     onSuccess: () => {
@@ -100,7 +99,7 @@ export function ResultsPage() {
             <Button
               startIcon={<CampaignIcon />}
               variant="contained"
-              disabled={!allVoted || selectedSession?.results_published || publishMutation.isPending}
+              disabled={!progress?.submitted_votes || selectedSession?.results_published || publishMutation.isPending}
               onClick={() => publishMutation.mutate(selectedId)}
             >
               {selectedSession?.results_published ? 'Published' : 'Publish results'}

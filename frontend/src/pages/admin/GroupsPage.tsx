@@ -91,7 +91,7 @@ export function GroupsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [groupToManage, setGroupToManage] = useState<Group | null>(null);
   const [sessionTitle, setSessionTitle] = useState('');
-  const [sessionDescription, setSessionDescription] = useState('');
+  const [sessionDescription, setSessionDescription] = useState(() => new Date().toISOString().slice(0, 10));
   const [pointsPool, setPointsPool] = useState(10);
   const [sessionParticipantIds, setSessionParticipantIds] = useState<number[]>([]);
   const [draftMemberIds, setDraftMemberIds] = useState<number[]>([]);
@@ -346,7 +346,7 @@ export function GroupsPage() {
     mutationFn: endpoints.createSession,
     onSuccess: () => {
       setSessionTitle('');
-      setSessionDescription('');
+      setSessionDescription(new Date().toISOString().slice(0, 10));
       setSessionParticipantIds(eligibleSessionMemberIds);
       setError(null);
       setMessage('Session draft created for this group.');
@@ -848,11 +848,12 @@ export function GroupsPage() {
                       fullWidth
                     />
                     <TextField
-                      label="Description"
+                      label="Session date"
+                      type="date"
                       value={sessionDescription}
                       onChange={(event) => setSessionDescription(event.target.value)}
-                      multiline
-                      minRows={2}
+                      InputLabelProps={{ shrink: true }}
+                      required
                       fullWidth
                     />
                     <Autocomplete
@@ -889,11 +890,19 @@ export function GroupsPage() {
                   <Stack spacing={2}>
                     <Typography variant="h3">Status</Typography>
                     {sessions.length === 0 && <Typography color="text.secondary">No sessions for this group yet.</Typography>}
+                    <Stack
+                      spacing={1.25}
+                      sx={{
+                        maxHeight: { xs: 560, md: 680 },
+                        overflowY: 'auto',
+                        pr: sessions.length > 2 ? 0.75 : 0,
+                        scrollbarGutter: 'stable',
+                      }}
+                    >
                     {sessions.map((session) => {
                       const progress = progressBySession.get(session.id);
                       const submitted = progress?.submitted_votes ?? 0;
                       const total = progress?.total_players ?? session.participant_ids.length;
-                      const allVoted = total > 0 && submitted >= total;
                       return (
                         <Card
                           key={session.id}
@@ -933,6 +942,11 @@ export function GroupsPage() {
                               <Stack>
                                 <Stack>
                                   <Typography fontWeight={900}>{session.title}</Typography>
+                                  {session.description && (
+                                    <Typography color="text.secondary" variant="body2">
+                                      {session.description}
+                                    </Typography>
+                                  )}
                                   <Typography color="text.secondary">
                                     {session.status} - voted {submitted} / {total} - {session.points_pool} XP
                                   </Typography>
@@ -982,7 +996,7 @@ export function GroupsPage() {
                                 <Button
                                   variant="contained"
                                   startIcon={<CampaignIcon />}
-                                  disabled={!allVoted || session.results_published || publishMutation.isPending}
+                                  disabled={submitted === 0 || session.results_published || publishMutation.isPending}
                                   onClick={() => publishMutation.mutate(session.id)}
                                 >
                                   Publish
@@ -1026,6 +1040,7 @@ export function GroupsPage() {
                         </Card>
                       );
                     })}
+                    </Stack>
                   </Stack>
                   </CardContent>
                 </Card>

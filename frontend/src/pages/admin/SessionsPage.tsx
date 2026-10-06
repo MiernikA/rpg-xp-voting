@@ -16,7 +16,7 @@ type SessionForm = Omit<VotingSessionCreate, 'group_id'> & { group_id: number | 
 
 const initialForm: SessionForm = {
   title: '',
-  description: '',
+  description: new Date().toISOString().slice(0, 10),
   group_id: '',
   participant_ids: [],
   points_pool: 10,
@@ -155,7 +155,15 @@ export function SessionsPage() {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField label="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} multiline minRows={2} fullWidth />
+              <TextField
+                label="Session date"
+                type="date"
+                value={form.description}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+                InputLabelProps={{ shrink: true }}
+                required
+                fullWidth
+              />
             </Grid>
             <Grid item xs={12}>
               <Typography fontWeight={700} sx={{ mb: 1 }}>
@@ -191,7 +199,6 @@ export function SessionsPage() {
           const progress = progressBySession.get(session.id);
           const submittedVotes = progress?.submitted_votes ?? 0;
           const totalPlayers = progress?.total_players ?? session.participant_ids.length;
-          const allVoted = totalPlayers > 0 && submittedVotes >= totalPlayers;
           return (
           <Grid item xs={12} md={6} key={session.id}>
             <Card variant="outlined">
@@ -236,7 +243,7 @@ export function SessionsPage() {
                     <Button
                       variant="contained"
                       startIcon={<CampaignIcon />}
-                      disabled={!allVoted || session.results_published || publishMutation.isPending}
+                      disabled={submittedVotes === 0 || session.results_published || publishMutation.isPending}
                       onClick={() => publishMutation.mutate(session.id)}
                     >
                       Publish results

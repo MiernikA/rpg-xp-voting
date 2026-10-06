@@ -102,6 +102,7 @@ class ResultService:
             PublishedSessionResults(
                 session_id=session.id,
                 session_title=session.title,
+                session_description=session.description,
                 group_name=session.group.name if session.group else None,
                 results=self.rankings(session.id, force_anonymous=True, include_gm_notes=False),
             )

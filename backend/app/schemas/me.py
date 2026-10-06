@@ -6,6 +6,7 @@ from app.schemas.user import UserRead
 class MySessionPoints(APIModel):
     session_id: int
     session_title: str
+    session_description: str | None
     group_name: str | None
     participated: bool
     points_received: int

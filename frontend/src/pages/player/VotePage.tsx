@@ -399,6 +399,11 @@ function PublishedVoteResults({
           <Typography variant="h2" textAlign="center" sx={{ width: '100%', overflowWrap: 'anywhere' }}>
             {session.session_title}
           </Typography>
+          {session.session_description && (
+            <Typography textAlign="center" variant="body2" sx={{ color: 'rgba(248,250,252,0.68)', mt: 0.5 }}>
+              {session.session_description}
+            </Typography>
+          )}
           <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mt: 2 }}>
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="caption" fontWeight={800} sx={{ color: 'rgba(248,250,252,0.58)' }}>

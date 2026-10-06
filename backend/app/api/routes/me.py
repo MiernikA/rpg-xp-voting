@@ -50,6 +50,7 @@ def my_info(user: User = Depends(current_user), db: Session = Depends(get_db)) -
             MySessionPoints(
                 session_id=voting_session.id,
                 session_title=voting_session.title,
+                session_description=voting_session.description,
                 group_name=voting_session.group.name if voting_session.group else None,
                 participated=participated,
                 points_received=sum(vote.points for vote in received_votes),

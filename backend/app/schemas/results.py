@@ -26,6 +26,7 @@ class ResultRow(APIModel):
 class PublishedSessionResults(APIModel):
     session_id: int
     session_title: str
+    session_description: str | None
     group_name: str | None
     results: list[ResultRow]
 

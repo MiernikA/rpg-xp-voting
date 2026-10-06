@@ -85,8 +85,8 @@ class VotingSessionService:
         if session.status == SessionStatus.draft:
             raise AppError(status.HTTP_409_CONFLICT, "Only active or closed sessions can publish results")
         progress = self.progress(session_id)
-        if progress.total_players == 0 or progress.submitted_votes < progress.total_players:
-            raise AppError(status.HTTP_409_CONFLICT, "All participants must vote before results can be published")
+        if progress.submitted_votes == 0:
+            raise AppError(status.HTTP_409_CONFLICT, "At least one participant must vote before results can be published")
         if session.status == SessionStatus.active:
             session.status = SessionStatus.closed
             session.closed_at = datetime.now(UTC)

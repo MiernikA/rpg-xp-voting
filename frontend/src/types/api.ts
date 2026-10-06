@@ -122,6 +122,7 @@ export interface ResultRow {
 export interface PublishedSessionResults {
   session_id: number;
   session_title: string;
+  session_description: string | null;
   group_name: string | null;
   results: ResultRow[];
 }
@@ -186,6 +187,7 @@ export interface Statistics {
 export interface MySessionPoints {
   session_id: number;
   session_title: string;
+  session_description: string | null;
   group_name: string | null;
   participated: boolean;
   points_received: number;

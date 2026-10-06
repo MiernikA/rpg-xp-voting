@@ -81,6 +81,11 @@ export function SessionHistoryPage() {
                   <Typography variant="h3" textAlign="center" sx={{ width: '100%', overflowWrap: 'anywhere' }}>
                     {session.session_title}
                   </Typography>
+                  {session.session_description && (
+                    <Typography color="text.secondary" variant="body2" textAlign="center">
+                      {session.session_description}
+                    </Typography>
+                  )}
                   {!session.participated && (
                     <Chip
                       label="You did not participate"
