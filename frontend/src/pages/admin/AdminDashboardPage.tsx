@@ -293,7 +293,7 @@ export function AdminDashboardPage() {
                     type={session.group_id ? 'button' : undefined}
                     onClick={() => {
                       if (session.group_id) {
-                        navigate(`/admin/groups/manage/${session.group_id}/manage-sessions?gmSession=${session.id}`);
+                        navigate(`/admin/groups/manage/${session.group_id}/sessions?gmSession=${session.id}`);
                       }
                     }}
                     sx={{

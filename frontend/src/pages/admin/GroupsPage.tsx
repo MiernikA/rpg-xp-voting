@@ -44,10 +44,10 @@ import { MetricCard } from '../../shared/ui/MetricCard';
 import type { ChartPoint, Group, Player, ResultRow, VotingSessionCreate } from '../../types/api';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 
-type GroupWorkspacePage = 'edit' | 'sessions' | 'manage-sessions' | 'stats';
+type GroupWorkspacePage = 'edit' | 'sessions' | 'stats';
 
 const PAGE_MAX_WIDTH = 1280;
-const GROUP_WORKSPACE_PAGES: GroupWorkspacePage[] = ['edit', 'sessions', 'manage-sessions', 'stats'];
+const GROUP_WORKSPACE_PAGES: GroupWorkspacePage[] = ['edit', 'sessions', 'stats'];
 
 function parseUrlId(value: string | null) {
   if (!value) return null;
@@ -612,7 +612,6 @@ export function GroupsPage() {
               {[
                 { id: 'edit', label: 'Edit Group', icon: <EditIcon /> },
                 { id: 'sessions', label: 'Sessions', icon: <CampaignIcon /> },
-                { id: 'manage-sessions', label: 'Manage Sessions', icon: <AccountTreeIcon /> },
                 { id: 'stats', label: 'Stats', icon: <BarChartIcon /> },
               ].map((item) => (
                 <Button
@@ -831,11 +830,10 @@ export function GroupsPage() {
             </Card>
             )}
 
-            {(workspacePage === 'sessions' || workspacePage === 'manage-sessions') && (
+            {workspacePage === 'sessions' && (
             <>
             <Grid container spacing={1.5}>
-              {workspacePage === 'sessions' && (
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
                 <Card component="form" onSubmit={submitSession} variant="outlined" sx={{ height: '100%' }}>
                   <CardContent sx={{ height: '100%', p: 2, '&:last-child': { pb: 2 } }}>
                   <Stack spacing={1.5} sx={{ height: '100%' }}>
@@ -885,14 +883,12 @@ export function GroupsPage() {
                   </CardContent>
                 </Card>
               </Grid>
-              )}
 
-              {workspacePage === 'manage-sessions' && (
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
                 <Card variant="outlined" sx={{ height: '100%' }}>
                   <CardContent sx={{ height: '100%', p: 2, '&:last-child': { pb: 2 } }}>
                   <Stack spacing={2}>
-                    <Typography variant="h3">Manage Sessions</Typography>
+                    <Typography variant="h3">Recent Sessions</Typography>
                     {sessions.length === 0 && <Typography color="text.secondary">No sessions for this group yet.</Typography>}
                     <Stack
                       spacing={1.25}
@@ -1049,7 +1045,6 @@ export function GroupsPage() {
                   </CardContent>
                 </Card>
               </Grid>
-              )}
             </Grid>
 
             </>
