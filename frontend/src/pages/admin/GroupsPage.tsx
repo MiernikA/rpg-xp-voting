@@ -907,8 +907,9 @@ export function GroupsPage() {
                         <Card
                           key={session.id}
                           variant="outlined"
-                          sx={
-                            session.results_archived
+                          sx={{
+                            flexShrink: 0,
+                            ...(session.results_archived
                               ? {
                                   bgcolor: '#f1f5f9',
                                   borderColor: '#cbd5e1',
@@ -934,8 +935,8 @@ export function GroupsPage() {
                                     },
                                   },
                                 }
-                              : undefined
-                          }
+                              : {}),
+                          }}
                         >
                           <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                             <Stack spacing={1.5}>
