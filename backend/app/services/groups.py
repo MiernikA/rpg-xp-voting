@@ -18,7 +18,7 @@ class GroupService:
     def create(self, data: GroupCreate) -> Group:
         if self.groups.by_name(data.name):
             raise AppError(status.HTTP_409_CONFLICT, "Group name already exists")
-        group = Group(name=data.name.strip(), description=data.description, image_url=data.image_url)
+        group = Group(name=data.name.strip(), image_url=data.image_url)
         self.groups.add(group)
         group.members = self._members(data.member_ids)
         self.db.commit()
@@ -34,8 +34,6 @@ class GroupService:
             if existing and existing.id != group.id:
                 raise AppError(status.HTTP_409_CONFLICT, "Group name already exists")
             group.name = values["name"].strip()
-        if "description" in values:
-            group.description = values["description"]
         if "image_url" in values:
             group.image_url = values["image_url"]
         if data.member_ids is not None:

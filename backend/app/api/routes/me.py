@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.api.deps import current_user
@@ -22,6 +22,7 @@ def my_info(user: User = Depends(current_user), db: Session = Depends(get_db)) -
         .where(User.id == user.id)
     )
     user = loaded_user or user
+    group_ids = [group.id for group in user.groups]
     sessions = list(
         db.scalars(
             select(VotingSession)
@@ -31,19 +32,26 @@ def my_info(user: User = Depends(current_user), db: Session = Depends(get_db)) -
                 selectinload(VotingSession.votes),
             )
             .where(VotingSession.results_published.is_(True))
-            .where(VotingSession.participants.any(User.id == user.id))
+            .where(
+                or_(
+                    VotingSession.group_id.in_(group_ids),
+                    VotingSession.participants.any(User.id == user.id),
+                )
+            )
             .order_by(VotingSession.id.desc())
         )
     )
 
     history = []
     for voting_session in sessions:
+        participated = any(participant.id == user.id for participant in voting_session.participants)
         received_votes = [vote for vote in voting_session.votes if vote.recipient_id == user.id]
         history.append(
             MySessionPoints(
                 session_id=voting_session.id,
                 session_title=voting_session.title,
                 group_name=voting_session.group.name if voting_session.group else None,
+                participated=participated,
                 points_received=sum(vote.points for vote in received_votes),
                 max_points_available=voting_session.points_pool
                 * max(len(voting_session.participants) - 1, 0),

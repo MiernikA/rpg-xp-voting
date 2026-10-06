@@ -22,25 +22,22 @@ export function AdminLayout() {
     <Box
       sx={{
         minHeight: '100dvh',
-        bgcolor: '#f6f7fb',
-        backgroundImage:
-          'radial-gradient(circle at 12% -4%, rgba(24, 92, 80, 0.08), transparent 32%), linear-gradient(180deg, #ffffff 0%, #f6f7fb 340px)',
+        bgcolor: '#f7f7f8',
       }}
     >
       <AppBar
         elevation={0}
         position="sticky"
         sx={{
-          bgcolor: 'rgba(255,255,255,0.92)',
+          bgcolor: '#ffffff',
           color: 'text.primary',
           borderBottom: '1px solid #e5e7eb',
-          backdropFilter: 'blur(16px)',
         }}
       >
         <Toolbar
           sx={{
             gap: 2,
-            minHeight: { xs: 72, md: 76 },
+            minHeight: 64,
             alignItems: 'center',
             display: 'grid',
             gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', md: 'minmax(0, 1fr) auto auto' },
@@ -53,28 +50,21 @@ export function AdminLayout() {
                 v{APP_VERSION}
               </Typography>
             </Stack>
-            <Typography variant="body2" color="text.secondary">
-              Game Master dashboard
-            </Typography>
           </Box>
           <Stack
             direction="row"
             spacing={1.25}
             alignItems="center"
             sx={{
-              minHeight: 44,
               display: { xs: 'none', sm: 'flex' },
             }}
           >
-            <Avatar sx={{ width: 38, height: 38, bgcolor: '#111827', fontSize: 16 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: '#111827', fontSize: 14 }}>
               {(auth?.user.display_name ?? 'U').charAt(0)}
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body2" color="text.secondary">
-                Logged in as
-              </Typography>
-              <Typography fontWeight={800} lineHeight={1.1} noWrap>
-                {auth?.user.display_name ?? 'User'} (@{auth?.user.username ?? 'unknown'})
+              <Typography fontWeight={800} variant="body2" noWrap>
+                {auth?.user.display_name ?? 'User'}
               </Typography>
             </Box>
           </Stack>
@@ -97,7 +87,7 @@ export function AdminLayout() {
             px: { xs: 2, md: 3 },
             pb: 1.5,
             alignItems: 'center',
-            minHeight: 52,
+            minHeight: 46,
             '& a': { whiteSpace: 'nowrap' },
             '&::-webkit-scrollbar': { display: 'none' },
           }}
@@ -112,7 +102,7 @@ export function AdminLayout() {
               color="inherit"
               sx={{
                 px: 1.6,
-                height: 38,
+                height: 34,
                 flex: '0 0 auto',
                 color: '#667085',
                 border: '1px solid transparent',
@@ -120,7 +110,7 @@ export function AdminLayout() {
                   bgcolor: '#111827',
                   color: '#ffffff',
                   borderColor: '#111827',
-                  boxShadow: '0 10px 20px rgba(17, 24, 39, 0.12)',
+                  boxShadow: 'none',
                 },
                 '&:hover:not(.active)': {
                   bgcolor: '#f2f4f7',
@@ -138,14 +128,12 @@ export function AdminLayout() {
         maxWidth="xl"
         sx={{
           width: '100%',
-          py: { xs: 4, md: 5 },
-          px: { xs: 2.5, sm: 3.5, md: 5 },
+          py: { xs: 2.5, md: 3.5 },
+          px: { xs: 2, sm: 3, md: 4 },
           '& .MuiCard-root': {
             bgcolor: '#ffffff',
             borderColor: '#e6e8ef',
-          },
-          '& .MuiCard-root:hover': {
-            boxShadow: '0 18px 44px rgba(17, 24, 39, 0.08)',
+            boxShadow: 'none',
           },
           '& .MuiGrid-container': { alignItems: 'stretch' },
         }}

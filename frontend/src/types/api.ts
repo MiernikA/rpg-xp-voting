@@ -61,7 +61,6 @@ export interface VotingSessionCreate {
 export interface Group {
   id: number;
   name: string;
-  description: string | null;
   image_url: string | null;
   created_at: string;
   updated_at: string;
@@ -70,7 +69,6 @@ export interface Group {
 
 export interface GroupCreate {
   name: string;
-  description?: string | null;
   image_url?: string | null;
   member_ids: number[];
 }
@@ -189,6 +187,7 @@ export interface MySessionPoints {
   session_id: number;
   session_title: string;
   group_name: string | null;
+  participated: boolean;
   points_received: number;
   max_points_available: number;
   comments: string[];

@@ -96,7 +96,6 @@ export function GroupsPage() {
   const [sessionParticipantIds, setSessionParticipantIds] = useState<number[]>([]);
   const [draftMemberIds, setDraftMemberIds] = useState<number[]>([]);
   const [groupName, setGroupName] = useState('');
-  const [groupDescription, setGroupDescription] = useState('');
   const [groupImageUrl, setGroupImageUrl] = useState('');
   const [showGmUsernames, setShowGmUsernames] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,9 +168,8 @@ export function GroupsPage() {
 
   useEffect(() => {
     setGroupName(selectedGroup?.name ?? '');
-    setGroupDescription(selectedGroup?.description ?? '');
     setGroupImageUrl(selectedGroup?.image_url ?? '');
-  }, [selectedGroup?.id, selectedGroup?.name, selectedGroup?.description, selectedGroup?.image_url]);
+  }, [selectedGroup?.id, selectedGroup?.name, selectedGroup?.image_url]);
 
   const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
     queryKey: ['sessions', groupId],
@@ -307,7 +305,6 @@ export function GroupsPage() {
     draftMemberIds.some((id) => !memberIds.includes(id));
   const groupDetailsChanged = selectedGroup
     ? groupName !== selectedGroup.name ||
-      groupDescription !== (selectedGroup.description ?? '') ||
       groupImageUrl !== (selectedGroup.image_url ?? '')
     : false;
 
@@ -331,10 +328,9 @@ export function GroupsPage() {
     onError: (err) => setError(getApiErrorMessage(err, 'Could not update group.')),
   });
   const updateGroupDetailsMutation = useMutation({
-    mutationFn: ({ id, name, description, image_url }: { id: number; name: string; description: string; image_url: string }) =>
+    mutationFn: ({ id, name, image_url }: { id: number; name: string; image_url: string }) =>
       endpoints.updateGroup(id, {
         name,
-        description: description.trim() || null,
         image_url: image_url || null,
       }),
     onSuccess: () => {
@@ -716,7 +712,7 @@ export function GroupsPage() {
                             <Stack spacing={0.5}>
                               <Typography variant="h3">Group Details</Typography>
                               <Typography color="text.secondary">
-                                Update the visible group name, description, and image used in management views.
+                                Update the visible group name and image used in management views.
                               </Typography>
                             </Stack>
                             {groupDetailsChanged && <Chip label="Unsaved" color="warning" sx={{ fontWeight: 800 }} />}
@@ -728,14 +724,6 @@ export function GroupsPage() {
                             required
                             fullWidth
                           />
-                          <TextField
-                            label="Description"
-                            value={groupDescription}
-                            onChange={(event) => setGroupDescription(event.target.value)}
-                            multiline
-                            minRows={2}
-                            fullWidth
-                          />
                           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 'auto' }}>
                             <Button
                               variant="contained"
@@ -745,7 +733,6 @@ export function GroupsPage() {
                                 updateGroupDetailsMutation.mutate({
                                   id: selectedGroup.id,
                                   name: groupName.trim(),
-                                  description: groupDescription,
                                   image_url: groupImageUrl,
                                 })
                               }
@@ -758,7 +745,6 @@ export function GroupsPage() {
                               disabled={!groupDetailsChanged || updateGroupDetailsMutation.isPending}
                               onClick={() => {
                                 setGroupName(selectedGroup.name);
-                                setGroupDescription(selectedGroup.description ?? '');
                                 setGroupImageUrl(selectedGroup.image_url ?? '');
                               }}
                               sx={{ minHeight: 40 }}

@@ -21,7 +21,7 @@ import { LoadingState } from '../../shared/ui/LoadingState';
 import type { GroupCreate } from '../../types/api';
 import { getApiErrorMessage } from '../../shared/api/apiError';
 
-const initialGroupForm: GroupCreate = { name: '', description: '', member_ids: [] };
+const initialGroupForm: GroupCreate = { name: '', member_ids: [] };
 
 export function CreateGroupPage() {
   const queryClient = useQueryClient();
@@ -114,7 +114,7 @@ export function CreateGroupPage() {
                 <Stack spacing={0.5}>
                   <Typography variant="h3">Group Details</Typography>
                   <Typography color="text.secondary">
-                    Name the party, add context for admins, then choose the starting roster.
+                    Name the party and choose the starting roster.
                   </Typography>
                 </Stack>
                 <TextField
@@ -122,14 +122,6 @@ export function CreateGroupPage() {
                   value={groupForm.name}
                   onChange={(event) => setGroupForm({ ...groupForm, name: event.target.value })}
                   required
-                  fullWidth
-                />
-                <TextField
-                  label="Description"
-                  value={groupForm.description}
-                  onChange={(event) => setGroupForm({ ...groupForm, description: event.target.value })}
-                  multiline
-                  minRows={2}
                   fullWidth
                 />
                 <Stack spacing={1}>

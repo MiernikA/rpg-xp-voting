@@ -94,7 +94,6 @@ def group_payload(group: Group) -> dict[str, Any]:
     return {
         "id": group.id,
         "name": group.name,
-        "description": group.description,
         "image_url": group.image_url,
         "created_at": group.created_at,
         "updated_at": group.updated_at,

@@ -7,6 +7,7 @@ class MySessionPoints(APIModel):
     session_id: int
     session_title: str
     group_name: str | None
+    participated: bool
     points_received: int
     max_points_available: int
     comments: list[str]

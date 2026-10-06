@@ -396,27 +396,21 @@ function PublishedVoteResults({
             boxShadow: '0 18px 44px rgba(2,6,23,0.28)',
           }}
         >
-          <Stack direction="row" spacing={2} alignItems="flex-start" justifyContent="space-between">
+          <Typography variant="h2" textAlign="center" sx={{ width: '100%', overflowWrap: 'anywhere' }}>
+            {session.session_title}
+          </Typography>
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mt: 2 }}>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="h2" sx={{ overflowWrap: 'anywhere' }}>
-                {session.session_title}
+              <Typography variant="caption" fontWeight={800} sx={{ color: 'rgba(248,250,252,0.58)' }}>
+                GROUP
               </Typography>
-              <Typography sx={{ color: 'rgba(248,250,252,0.68)', mt: 0.5 }}>
+              <Typography fontWeight={800} noWrap>
                 {session.group_name ?? 'No group'}
               </Typography>
             </Box>
-            <Box
-              sx={{
-                flex: '0 0 auto',
-                px: { xs: 2, sm: 2.5 },
-                py: { xs: 1.35, sm: 1.6 },
-                borderRadius: 2,
-                bgcolor: 'rgba(255,255,255,0.12)',
-                textAlign: 'right',
-              }}
-            >
-              <Typography variant="body2" sx={{ color: 'rgba(248,250,252,0.68)' }}>
-                Full EXP Pool
+            <Box sx={{ flex: '0 0 auto', textAlign: 'right' }}>
+              <Typography variant="caption" fontWeight={800} sx={{ color: 'rgba(248,250,252,0.58)' }}>
+                FULL EXP POOL
               </Typography>
               <Typography fontWeight={900}>{fullExpPool} EXP</Typography>
             </Box>

@@ -113,7 +113,6 @@ class MaintenanceService:
                 Group(
                     id=payload["id"],
                     name=payload["name"],
-                    description=payload["description"],
                     image_url=payload["image_url"],
                     created_at=parse_datetime(payload["created_at"]),
                     updated_at=parse_datetime(payload["updated_at"]),
