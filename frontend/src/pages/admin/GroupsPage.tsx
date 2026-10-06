@@ -320,19 +320,20 @@ function GMSessionFlowGraph({
 export function GroupsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { groupId: routeGroupId } = useParams();
+  const { groupId: routeGroupId, tab: routeWorkspacePage } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [groupToManage, setGroupToManage] = useState<Group | null>(null);
   const [sessionTitle, setSessionTitle] = useState('');
   const [sessionDescription, setSessionDescription] = useState('');
   const [pointsPool, setPointsPool] = useState(10);
+  const [sessionParticipantIds, setSessionParticipantIds] = useState<number[]>([]);
   const [draftMemberIds, setDraftMemberIds] = useState<number[]>([]);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
   const [groupImageUrl, setGroupImageUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const workspacePageParam = searchParams.get('tab');
+  const workspacePageParam = routeWorkspacePage ?? searchParams.get('tab');
   const managedGroupId = parseUrlId(routeGroupId ?? searchParams.get('group'));
   const workspacePage: GroupWorkspacePage = isGroupWorkspacePage(workspacePageParam) ? workspacePageParam : 'edit';
   const selectedGmSessionId = parseUrlId(searchParams.get('gmSession'));
@@ -352,7 +353,11 @@ export function GroupsPage() {
     });
   };
   const openGroupWorkspace = (groupId: number, tab: GroupWorkspacePage = 'edit') => {
-    navigate(`/admin/groups/manage/${groupId}?tab=${tab}`);
+    navigate(`/admin/groups/manage/${groupId}/${tab}`);
+  };
+  const openWorkspacePage = (tab: GroupWorkspacePage) => {
+    if (!managedGroupId) return;
+    navigate(`/admin/groups/manage/${managedGroupId}/${tab}`);
   };
   const closeGroupWorkspace = () => {
     navigate('/admin/groups/manage');
@@ -377,10 +382,22 @@ export function GroupsPage() {
     () => selectedGroup?.members.map((member) => member.id) ?? [],
     [selectedGroup?.members],
   );
+  const eligibleSessionMembers = useMemo(
+    () => selectedGroup?.members.filter((member) => member.role === 'player' && member.is_active) ?? [],
+    [selectedGroup?.members],
+  );
+  const eligibleSessionMemberIds = useMemo(
+    () => eligibleSessionMembers.map((member) => member.id),
+    [eligibleSessionMembers],
+  );
 
   useEffect(() => {
     setDraftMemberIds(memberIds);
   }, [memberIds]);
+
+  useEffect(() => {
+    setSessionParticipantIds(eligibleSessionMemberIds);
+  }, [eligibleSessionMemberIds]);
 
   useEffect(() => {
     setGroupName(selectedGroup?.name ?? '');
@@ -571,6 +588,7 @@ export function GroupsPage() {
     onSuccess: () => {
       setSessionTitle('');
       setSessionDescription('');
+      setSessionParticipantIds(eligibleSessionMemberIds);
       setError(null);
       setMessage('Session draft created for this group.');
       refreshGroup();
@@ -614,15 +632,15 @@ export function GroupsPage() {
       setError('Pick a group first.');
       return;
     }
-    if (memberIds.length < 2) {
-      setError('A session needs at least 2 group members.');
+    if (sessionParticipantIds.length < 2) {
+      setError('Select at least 2 participants for the session.');
       return;
     }
     const payload: VotingSessionCreate = {
       title: sessionTitle.trim() || `${selectedGroup.name} session`,
       description: sessionDescription.trim() || undefined,
       group_id: selectedGroup.id,
-      participant_ids: memberIds,
+      participant_ids: sessionParticipantIds,
       points_pool: pointsPool,
     };
     createSessionMutation.mutate(payload);
@@ -841,7 +859,7 @@ export function GroupsPage() {
                   key={item.id}
                   variant={workspacePage === item.id ? 'contained' : 'outlined'}
                   startIcon={item.icon}
-                  onClick={() => updateUrlState({ tab: item.id, gmSession: null, gmPlayer: null })}
+                  onClick={() => openWorkspacePage(item.id as GroupWorkspacePage)}
                 >
                   {item.label}
                 </Button>
@@ -1088,7 +1106,27 @@ export function GroupsPage() {
                       minRows={2}
                       fullWidth
                     />
-                    <Button type="submit" variant="contained" startIcon={<AddIcon />} disabled={createSessionMutation.isPending}>
+                    <Autocomplete
+                      multiple
+                      options={eligibleSessionMembers}
+                      value={eligibleSessionMembers.filter((member) => sessionParticipantIds.includes(member.id))}
+                      getOptionLabel={(member: Player) => member.display_name}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onChange={(_, members) => setSessionParticipantIds(members.map((member) => member.id))}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Session participants"
+                          helperText={`${sessionParticipantIds.length} selected; choose at least 2. Unselected group members will not take part.`}
+                        />
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      disabled={createSessionMutation.isPending || sessionParticipantIds.length < 2}
+                    >
                       Create group session
                     </Button>
                   </Stack>
