@@ -34,22 +34,27 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <ProtectedRoute role="admin" />,
+    element: <ProtectedRoute roles={['admin', 'game_master']} />,
     children: [
       {
         element: <AdminLayout />,
         children: [
-          { path: '/admin', element: <AdminDashboardPage /> },
           { path: '/admin/groups', element: <Navigate to="/admin/groups/manage" replace /> },
-          { path: '/admin/groups/create', element: <CreateGroupPage /> },
           { path: '/admin/groups/manage', element: <GroupsPage /> },
           { path: '/admin/groups/manage/:groupId', element: <GroupsPage /> },
           { path: '/admin/groups/manage/:groupId/:tab', element: <GroupsPage /> },
-          { path: '/admin/players', element: <PlayersPage /> },
           { path: '/admin/sessions', element: <Navigate to="/admin/groups/manage" replace /> },
           { path: '/admin/results', element: <Navigate to="/admin/groups/manage" replace /> },
           { path: '/admin/results/comments', element: <Navigate to="/admin/groups/manage" replace /> },
-          { path: '/admin/statistics', element: <Navigate to="/admin" replace /> },
+          {
+            element: <ProtectedRoute role="admin" />,
+            children: [
+              { path: '/admin', element: <AdminDashboardPage /> },
+              { path: '/admin/groups/create', element: <CreateGroupPage /> },
+              { path: '/admin/players', element: <PlayersPage /> },
+              { path: '/admin/statistics', element: <Navigate to="/admin" replace /> },
+            ],
+          },
         ],
       },
     ],

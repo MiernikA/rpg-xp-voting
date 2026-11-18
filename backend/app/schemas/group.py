@@ -13,6 +13,7 @@ class GroupRead(APIModel):
     created_at: datetime
     updated_at: datetime
     members: list[UserRead] = []
+    game_masters: list[UserRead] = []
 
 
 class GroupCreate(APIModel):
@@ -25,3 +26,4 @@ class GroupUpdate(APIModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     image_url: str | None = None
     member_ids: list[int] | None = None
+    game_master_ids: list[int] | None = None

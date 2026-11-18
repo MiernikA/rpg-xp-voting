@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'player';
+export type Role = 'admin' | 'game_master' | 'player';
 export type SessionStatus = 'draft' | 'active' | 'closed';
 
 export interface Player {
@@ -65,12 +65,14 @@ export interface Group {
   created_at: string;
   updated_at: string;
   members: Player[];
+  game_masters: Player[];
 }
 
 export interface GroupCreate {
   name: string;
   image_url?: string | null;
   member_ids: number[];
+  game_master_ids?: number[];
 }
 
 export interface LoginRequest {

@@ -38,6 +38,8 @@ class GroupService:
             group.image_url = values["image_url"]
         if data.member_ids is not None:
             group.members = self._members(data.member_ids)
+        if data.game_master_ids is not None:
+            group.game_masters = self._game_masters(data.game_master_ids)
         self.db.commit()
         return group
 
@@ -58,3 +60,12 @@ class GroupService:
                 raise AppError(status.HTTP_422_UNPROCESSABLE_ENTITY, "Group members must be active players")
             members.append(user)
         return members
+
+    def _game_masters(self, user_ids: list[int]) -> list:
+        game_masters = []
+        for user_id in set(user_ids):
+            user = self.users.get(user_id)
+            if user is None or user.role != UserRole.game_master or not user.is_active:
+                raise AppError(status.HTTP_422_UNPROCESSABLE_ENTITY, "Assigned users must be active game masters")
+            game_masters.append(user)
+        return game_masters

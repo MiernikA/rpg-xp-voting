@@ -12,7 +12,7 @@ from app.domain.maintenance.backup import (
     user_payload,
     vote_payload,
 )
-from app.models.group import Group, session_participants, user_groups
+from app.models.group import Group, group_game_masters, session_participants, user_groups
 from app.models.user import User, UserRole
 from app.models.vote import Vote
 from app.models.voting_session import SessionStatus, VotingSession
@@ -39,6 +39,13 @@ class MaintenanceService:
             )
         ):
             records.append(("user_groups", {"user_id": row.user_id, "group_id": row.group_id}))
+        for row in self.db.execute(
+            select(group_game_masters.c.user_id, group_game_masters.c.group_id).order_by(
+                group_game_masters.c.user_id,
+                group_game_masters.c.group_id,
+            )
+        ):
+            records.append(("group_game_masters", {"user_id": row.user_id, "group_id": row.group_id}))
         for session in self.db.scalars(select(VotingSession).order_by(VotingSession.id)):
             records.append(("voting_sessions", session_payload(session)))
         for row in self.db.execute(
@@ -122,6 +129,10 @@ class MaintenanceService:
 
         for payload in buckets["user_groups"]:
             self.db.execute(user_groups.insert().values(user_id=payload["user_id"], group_id=payload["group_id"]))
+        for payload in buckets["group_game_masters"]:
+            self.db.execute(
+                group_game_masters.insert().values(user_id=payload["user_id"], group_id=payload["group_id"])
+            )
 
         for payload in buckets["voting_sessions"]:
             self.db.add(
@@ -166,6 +177,7 @@ class MaintenanceService:
         self.db.execute(delete(Vote))
         self.db.execute(delete(session_participants))
         self.db.execute(delete(user_groups))
+        self.db.execute(delete(group_game_masters))
         self.db.execute(delete(VotingSession))
         self.db.execute(delete(Group))
         self.db.execute(delete(User).where(User.id != admin_id))
@@ -174,6 +186,7 @@ class MaintenanceService:
         self.db.execute(delete(Vote))
         self.db.execute(delete(session_participants))
         self.db.execute(delete(user_groups))
+        self.db.execute(delete(group_game_masters))
         self.db.execute(delete(VotingSession))
         self.db.execute(delete(Group))
         self.db.execute(delete(User))

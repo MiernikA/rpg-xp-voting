@@ -34,3 +34,14 @@ def require_role(*roles: UserRole) -> Callable[[User], User]:
 
 def current_admin(user: User = Depends(require_role(UserRole.admin))) -> User:
     return user
+
+
+def current_manager(user: User = Depends(require_role(UserRole.admin, UserRole.game_master))) -> User:
+    return user
+
+
+def require_group_access(user: User, group_id: int | None) -> None:
+    if user.role == UserRole.admin:
+        return
+    if group_id is None or not any(group.id == group_id for group in user.managed_groups):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This group is not assigned to you")

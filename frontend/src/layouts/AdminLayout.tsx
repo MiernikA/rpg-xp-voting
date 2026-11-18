@@ -8,16 +8,21 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { APP_VERSION } from '../shared/config/appVersion';
 
-const links = [
+const adminLinks = [
   { to: '/admin', label: 'Dashboard', icon: <DashboardIcon /> },
   { to: '/admin/groups/create', label: 'Create Group', icon: <AddIcon /> },
   { to: '/admin/groups/manage', label: 'Manage Groups', icon: <GroupsIcon /> },
   { to: '/admin/players', label: 'Players', icon: <GroupsIcon /> },
 ];
 
+const gameMasterLinks = [
+  { to: '/admin/groups/manage', label: 'My Groups', icon: <GroupsIcon /> },
+];
+
 export function AdminLayout() {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
+  const links = auth?.user.role === 'game_master' ? gameMasterLinks : adminLinks;
   return (
     <Box
       sx={{

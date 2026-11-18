@@ -126,6 +126,7 @@ export function PlayersPage() {
   const activePlayers = data.filter((player) => player.role === 'player' && player.is_active);
   const inactivePlayers = data.filter((player) => player.role === 'player' && !player.is_active);
   const admins = data.filter((player) => player.role === 'admin');
+  const gameMasters = data.filter((player) => player.role === 'game_master');
   const accountFormFor = (playerId: number) => {
     const player = data.find((item) => item.id === playerId);
     return (
@@ -175,12 +176,13 @@ export function PlayersPage() {
               <Stack spacing={1.5}>
                 <Typography variant="h3">Account Rules</Typography>
                 <Typography color="text.secondary">
-                  Players can vote and appear in group rosters. Admins can manage players, groups, sessions, and results.
+                  Players vote, game masters run assigned groups, and admins manage the whole system.
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   <Chip label={`${activePlayers.length} active players`} color="success" sx={{ fontWeight: 800 }} />
                   <Chip label={`${inactivePlayers.length} inactive`} sx={{ fontWeight: 800 }} />
                   <Chip label={`${admins.length} admins`} color="primary" sx={{ fontWeight: 800 }} />
+                  <Chip label={`${gameMasters.length} game masters`} color="secondary" sx={{ fontWeight: 800 }} />
                 </Stack>
                 <Box sx={{ border: '1px solid #edf0f5', borderRadius: 1, p: 1.5 }}>
                   <Typography fontWeight={900}>Access control</Typography>
@@ -212,7 +214,7 @@ export function PlayersPage() {
                   <Stack spacing={0.5}>
                     <Typography variant="h3">Create Account</Typography>
                     <Typography color="text.secondary">
-                      Add a player for voting or an admin for management access.
+                      Add a player, a game master for assigned groups, or an administrator.
                     </Typography>
                   </Stack>
                   <Chip label={form.role === 'admin' ? 'Admin access' : 'Player account'} color={form.role === 'admin' ? 'primary' : 'success'} sx={{ height: 30, fontWeight: 800 }} />
@@ -257,10 +259,11 @@ export function PlayersPage() {
                       value={form.role}
                       onChange={(event) => setForm({ ...form, role: event.target.value as Role })}
                       fullWidth
-                      helperText="Admins can manage the app."
+                      helperText="Game masters manage only groups assigned by an admin."
                     >
                       <MenuItem value="player">Player</MenuItem>
                       <MenuItem value="admin">Admin</MenuItem>
+                      <MenuItem value="game_master">Game Master</MenuItem>
                     </TextField>
                   </Grid>
                 </Grid>

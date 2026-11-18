@@ -13,6 +13,13 @@ user_groups = Table(
     Column("group_id", Integer, ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True),
 )
 
+group_game_masters = Table(
+    "group_game_masters",
+    Base.metadata,
+    Column("group_id", Integer, ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+)
+
 
 session_participants = Table(
     "session_participants",
@@ -35,4 +42,5 @@ class Group(Base):
     )
 
     members = relationship("User", secondary=user_groups, back_populates="groups")
+    game_masters = relationship("User", secondary=group_game_masters, back_populates="managed_groups")
     sessions = relationship("VotingSession", back_populates="group")

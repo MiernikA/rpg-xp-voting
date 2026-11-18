@@ -43,6 +43,7 @@ import { LoadingState } from '../../shared/ui/LoadingState';
 import { MetricCard } from '../../shared/ui/MetricCard';
 import type { ChartPoint, Group, Player, ResultRow, VotingSessionCreate } from '../../types/api';
 import { getApiErrorMessage } from '../../shared/api/apiError';
+import { useAuth } from '../../hooks/useAuth';
 
 type GroupWorkspacePage = 'edit' | 'sessions' | 'stats';
 
@@ -85,6 +86,8 @@ function GroupChartCard({
 }
 
 export function GroupsPage() {
+  const { auth } = useAuth();
+  const isAdmin = auth?.user.role === 'admin';
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { groupId: routeGroupId, tab: routeWorkspacePage } = useParams();
@@ -97,6 +100,10 @@ export function GroupsPage() {
   const [draftMemberIds, setDraftMemberIds] = useState<number[]>([]);
   const [groupName, setGroupName] = useState('');
   const [groupImageUrl, setGroupImageUrl] = useState('');
+  const [draftGameMasterIds, setDraftGameMasterIds] = useState<number[]>([]);
+  const [playerToEdit, setPlayerToEdit] = useState<Player | null>(null);
+  const [playerDisplayName, setPlayerDisplayName] = useState('');
+  const [playerEmail, setPlayerEmail] = useState('');
   const [showGmUsernames, setShowGmUsernames] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -145,6 +152,7 @@ export function GroupsPage() {
   );
   const groupId = selectedGroup?.id;
   const activePlayers = players.filter((player) => player.role === 'player' && player.is_active);
+  const activeGameMasters = players.filter((player) => player.role === 'game_master' && player.is_active);
   const memberIds = useMemo(
     () => selectedGroup?.members.map((member) => member.id) ?? [],
     [selectedGroup?.members],
@@ -161,6 +169,10 @@ export function GroupsPage() {
   useEffect(() => {
     setDraftMemberIds(memberIds);
   }, [memberIds]);
+
+  useEffect(() => {
+    setDraftGameMasterIds(selectedGroup?.game_masters.map((gameMaster) => gameMaster.id) ?? []);
+  }, [selectedGroup?.game_masters]);
 
   useEffect(() => {
     setSessionParticipantIds(eligibleSessionMemberIds);
@@ -194,7 +206,7 @@ export function GroupsPage() {
   const { data: gmView } = useQuery({
     queryKey: ['gm-session-view', gmSession?.id],
     queryFn: () => endpoints.gmSessionView(gmSession!.id),
-    enabled: Boolean(gmSession?.id && gmSession.status === 'closed'),
+    enabled: Boolean(gmSession?.id && gmSession.status !== 'draft'),
   });
   const gmPlayers = useMemo(() => {
     const playerNames = new Map<number, string>();
@@ -330,6 +342,28 @@ export function GroupsPage() {
       refreshGroup();
     },
     onError: (err) => setError(getApiErrorMessage(err, 'Could not update group details.')),
+  });
+  const updateGameMastersMutation = useMutation({
+    mutationFn: ({ id, game_master_ids }: { id: number; game_master_ids: number[] }) =>
+      endpoints.updateGroup(id, { game_master_ids }),
+    onSuccess: () => {
+      setError(null);
+      setMessage('Game master assignments updated.');
+      refreshGroup();
+    },
+    onError: (err) => setError(getApiErrorMessage(err, 'Could not update game master assignments.')),
+  });
+  const updatePlayerMutation = useMutation({
+    mutationFn: ({ id, display_name, email }: { id: number; display_name: string; email: string | null }) =>
+      endpoints.updatePlayer(id, { display_name, email }),
+    onSuccess: () => {
+      setPlayerToEdit(null);
+      setError(null);
+      setMessage('Player updated.');
+      refreshGroup();
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+    },
+    onError: (err) => setError(getApiErrorMessage(err, 'Could not update player.')),
   });
   const removeGroupMutation = useMutation({
     mutationFn: endpoints.removeGroup,
@@ -610,7 +644,7 @@ export function GroupsPage() {
                 Back to groups
               </Button>
               {[
-                { id: 'edit', label: 'Edit Group', icon: <EditIcon /> },
+                { id: 'edit', label: isAdmin ? 'Edit Group' : 'Players', icon: <EditIcon /> },
                 { id: 'sessions', label: 'Sessions', icon: <CampaignIcon /> },
                 { id: 'stats', label: 'Stats', icon: <BarChartIcon /> },
               ].map((item) => (
@@ -631,16 +665,16 @@ export function GroupsPage() {
                 <Stack spacing={2.25}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
                     <Stack>
-                    <Typography variant="h3">Edit Group</Typography>
+                    <Typography variant="h3">{isAdmin ? 'Edit Group' : 'Group Players'}</Typography>
                     <Typography color="text.secondary">{selectedGroup.members.length} members</Typography>
                     </Stack>
                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                      <Chip label={`${draftMemberIds.length} selected`} color="success" sx={{ fontWeight: 800 }} />
-                      {draftMembersChanged && <Chip label="Unsaved changes" color="warning" sx={{ fontWeight: 800 }} />}
+                      <Chip label={`${draftMemberIds.length} players`} color="success" sx={{ fontWeight: 800 }} />
+                      {isAdmin && draftMembersChanged && <Chip label="Unsaved changes" color="warning" sx={{ fontWeight: 800 }} />}
                     </Stack>
                   </Stack>
 
-                  <Box
+                  {isAdmin && <Box
                     sx={{
                       display: 'grid',
                       gridTemplateColumns: { xs: '1fr', md: '260px minmax(0, 1fr)' },
@@ -765,7 +799,39 @@ export function GroupsPage() {
                         </Stack>
                       </CardContent>
                     </Card>
-                  </Box>
+                  </Box>}
+
+                  {isAdmin && (
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Stack spacing={1.5}>
+                          <Stack>
+                            <Typography variant="h3">Assigned Game Masters</Typography>
+                            <Typography color="text.secondary">
+                              Assigned game masters can edit players and run sessions only in this group.
+                            </Typography>
+                          </Stack>
+                          <Autocomplete
+                            multiple
+                            options={activeGameMasters}
+                            value={activeGameMasters.filter((gameMaster) => draftGameMasterIds.includes(gameMaster.id))}
+                            getOptionLabel={(gameMaster) => `${gameMaster.display_name} (@${gameMaster.username})`}
+                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                            onChange={(_, values) => setDraftGameMasterIds(values.map((gameMaster) => gameMaster.id))}
+                            renderInput={(params) => <TextField {...params} label="Game masters" placeholder="Assign game master" />}
+                          />
+                          <Button
+                            variant="contained"
+                            disabled={updateGameMastersMutation.isPending}
+                            onClick={() => updateGameMastersMutation.mutate({ id: selectedGroup.id, game_master_ids: draftGameMasterIds })}
+                            sx={{ alignSelf: 'flex-start' }}
+                          >
+                            Save game master assignments
+                          </Button>
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   <Stack spacing={0.75} sx={{ maxHeight: 340, overflowY: 'auto', pr: 0.5 }}>
                     {activePlayers.map((player) => {
@@ -773,7 +839,14 @@ export function GroupsPage() {
                       return (
                         <Box
                           key={player.id}
-                          onClick={() => toggleDraftMember(player.id)}
+                          onClick={() => {
+                            if (isAdmin) toggleDraftMember(player.id);
+                            else {
+                              setPlayerToEdit(player);
+                              setPlayerDisplayName(player.display_name);
+                              setPlayerEmail(player.email ?? '');
+                            }
+                          }}
                           sx={{
                             display: 'grid',
                             gridTemplateColumns: 'auto minmax(0, 1fr) auto',
@@ -798,16 +871,20 @@ export function GroupsPage() {
                             <Typography fontWeight={900} noWrap>{player.display_name}</Typography>
                             <Typography color="text.secondary" variant="body2" noWrap>@{player.username}</Typography>
                           </Stack>
-                          <Checkbox
-                            checked={selected}
-                            onChange={() => toggleDraftMember(player.id)}
-                            onClick={(event) => event.stopPropagation()}
-                          />
+                          {isAdmin ? (
+                            <Checkbox
+                              checked={selected}
+                              onChange={() => toggleDraftMember(player.id)}
+                              onClick={(event) => event.stopPropagation()}
+                            />
+                          ) : (
+                            <Button size="small" startIcon={<EditIcon />}>Edit</Button>
+                          )}
                         </Box>
                       );
                     })}
                   </Stack>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  {isAdmin && <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                     <Button
                       variant="contained"
                       disabled={!draftMembersChanged || updateMembersMutation.isPending}
@@ -824,7 +901,7 @@ export function GroupsPage() {
                     >
                       Reset changes
                     </Button>
-                  </Stack>
+                  </Stack>}
                 </Stack>
               </CardContent>
             </Card>
@@ -1013,7 +1090,7 @@ export function GroupsPage() {
                                 <Button
                                   variant="outlined"
                                   startIcon={<AccountTreeIcon />}
-                                  disabled={session.status !== 'closed'}
+                                  disabled={session.status === 'draft'}
                                   onClick={() => updateUrlState({ gmSession: session.id, gmPlayer: null })}
                                 >
                                   GM view
@@ -1157,7 +1234,7 @@ export function GroupsPage() {
             <Stack>
               <Typography variant="h3">GM Session View</Typography>
               <Typography color="text.secondary">
-                {gmSession ? `${gmSession.title} vote details` : 'Close a session to inspect its vote details.'}
+                {gmSession ? `${gmSession.title} live vote details` : 'Activate a session to inspect its vote details.'}
               </Typography>
             </Stack>
             {gmView && (
@@ -1185,7 +1262,7 @@ export function GroupsPage() {
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
-            {!gmSession && <Typography color="text.secondary">No closed session available.</Typography>}
+            {!gmSession && <Typography color="text.secondary">No active or closed session available.</Typography>}
             {gmSession && !gmView && <Typography color="text.secondary">No vote details loaded yet.</Typography>}
             {gmView && selectedGroup && (
               <>
@@ -1347,6 +1424,45 @@ export function GroupsPage() {
                 </Card>
               </>
             )}
+          </Stack>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(playerToEdit)} onClose={() => setPlayerToEdit(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit player</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ pt: 0.5 }}>
+            <Typography color="text.secondary">
+              You can update profile details for players in this assigned group. Roles, status, and group membership remain admin-only.
+            </Typography>
+            <TextField
+              label="Display name"
+              value={playerDisplayName}
+              onChange={(event) => setPlayerDisplayName(event.target.value)}
+              required
+            />
+            <TextField
+              label="Email"
+              type="email"
+              value={playerEmail}
+              onChange={(event) => setPlayerEmail(event.target.value)}
+            />
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Button onClick={() => setPlayerToEdit(null)}>Cancel</Button>
+              <Button
+                variant="contained"
+                disabled={!playerToEdit || !playerDisplayName.trim() || updatePlayerMutation.isPending}
+                onClick={() => {
+                  if (!playerToEdit) return;
+                  updatePlayerMutation.mutate({
+                    id: playerToEdit.id,
+                    display_name: playerDisplayName.trim(),
+                    email: playerEmail.trim() || null,
+                  });
+                }}
+              >
+                Save player
+              </Button>
+            </Stack>
           </Stack>
         </DialogContent>
       </Dialog>

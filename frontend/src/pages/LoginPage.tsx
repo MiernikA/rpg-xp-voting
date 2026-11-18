@@ -18,7 +18,7 @@ export function LoginPage() {
     setError(null);
     try {
       const tokenPair = await login({ username, password });
-      navigate(tokenPair.user.role === 'admin' ? '/admin' : '/vote');
+      navigate(tokenPair.user.role === 'player' ? '/vote' : tokenPair.user.role === 'admin' ? '/admin' : '/admin/groups/manage');
     } catch {
       setError('Invalid username or password.');
     }

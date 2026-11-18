@@ -17,6 +17,7 @@ BACKUP_ENTITIES = (
     "users",
     "groups",
     "user_groups",
+    "group_game_masters",
     "voting_sessions",
     "session_participants",
     "votes",

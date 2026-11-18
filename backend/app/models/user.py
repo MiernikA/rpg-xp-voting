@@ -5,11 +5,12 @@ from sqlalchemy import Boolean, DateTime, Enum, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
-from app.models.group import user_groups
+from app.models.group import group_game_masters, user_groups
 
 
 class UserRole(StrEnum):
     admin = "admin"
+    game_master = "game_master"
     player = "player"
 
 
@@ -37,3 +38,4 @@ class User(Base):
     votes_given = relationship("Vote", foreign_keys="Vote.voter_id", back_populates="voter")
     votes_received = relationship("Vote", foreign_keys="Vote.recipient_id", back_populates="recipient")
     groups = relationship("Group", secondary=user_groups, back_populates="members")
+    managed_groups = relationship("Group", secondary=group_game_masters, back_populates="game_masters")
