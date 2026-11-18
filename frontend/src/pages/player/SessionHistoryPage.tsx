@@ -1,6 +1,6 @@
 import HistoryIcon from '@mui/icons-material/History';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Box, Button, Card, CardContent, Chip, Collapse, Container, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Chip, Collapse, Container, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -12,6 +12,7 @@ import { LoadingState } from '../../shared/ui/LoadingState';
 export function SessionHistoryPage() {
   const { auth } = useAuth();
   const [expandedSessionIds, setExpandedSessionIds] = useState<number[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: endpoints.me,
@@ -28,6 +29,11 @@ export function SessionHistoryPage() {
     groups.set(groupName, sessions);
     return groups;
   }, new Map<string, typeof data.history>());
+  const groupNames = Array.from(sessionsByGroup.keys());
+  const activeGroup = selectedGroup && sessionsByGroup.has(selectedGroup) ? selectedGroup : groupNames[0] ?? null;
+  const activeGroupSessions = activeGroup ? sessionsByGroup.get(activeGroup) ?? [] : [];
+  const activeGroupPlayedSessions = activeGroupSessions.filter((session) => session.participated);
+  const activeGroupPoints = activeGroupPlayedSessions.reduce((sum, session) => sum + session.points_received, 0);
 
   const toggleComments = (sessionId: number) => {
     setExpandedSessionIds((current) =>
@@ -71,27 +77,40 @@ export function SessionHistoryPage() {
           </Card>
         )}
 
-        <Stack spacing={2.5}>
-        {Array.from(sessionsByGroup.entries()).map(([groupName, groupSessions]) => {
-          const groupPlayedSessions = groupSessions.filter((session) => session.participated);
-          const groupPoints = groupPlayedSessions.reduce((sum, session) => sum + session.points_received, 0);
-
-          return (
-          <Stack key={groupName} spacing={1}>
+        {activeGroup && (
+          <Stack spacing={1.5}>
+            <Card variant="outlined">
+              <Tabs
+                value={activeGroup}
+                onChange={(_, value: string) => {
+                  setSelectedGroup(value);
+                  setExpandedSessionIds([]);
+                }}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+                aria-label="Session history groups"
+              >
+                {groupNames.map((groupName) => (
+                  <Tab key={groupName} value={groupName} label={groupName} sx={{ fontWeight: 900 }} />
+                ))}
+              </Tabs>
+            </Card>
+            <Stack spacing={1}>
             <Card variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.88)' }}>
               <CardContent sx={{ py: 1.75, '&:last-child': { pb: 1.75 } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="h3" noWrap>{groupName}</Typography>
+                    <Typography variant="h3" noWrap>{activeGroup}</Typography>
                     <Typography color="text.secondary" variant="body2">
-                      {groupPlayedSessions.length} of {groupSessions.length} sessions played
+                      {activeGroupPlayedSessions.length} of {activeGroupSessions.length} sessions played
                     </Typography>
                   </Box>
-                  <Chip label={`${groupPoints} EXP`} color="primary" sx={{ flex: '0 0 auto', fontWeight: 900 }} />
+                  <Chip label={`${activeGroupPoints} EXP`} color="primary" sx={{ flex: '0 0 auto', fontWeight: 900 }} />
                 </Stack>
               </CardContent>
             </Card>
-          {groupSessions.map((session) => {
+          {activeGroupSessions.map((session) => {
           const comments = orderCommentsForPlayer(
             session.comments,
             auth.user.id,
@@ -186,10 +205,9 @@ export function SessionHistoryPage() {
             </Card>
           );
         })}
+            </Stack>
           </Stack>
-          );
-        })}
-        </Stack>
+        )}
       </Stack>
     </Container>
   );
