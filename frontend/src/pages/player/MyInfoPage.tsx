@@ -151,7 +151,6 @@ export function MyInfoPage() {
 
   if (isLoading || !data) return <LoadingState />;
 
-  const totalPoints = data.history.reduce((sum, row) => sum + row.points_received, 0);
   const groupXp = data.history.reduce((groups, session) => {
     const groupName = session.group_name ?? 'No group';
     const current = groups.get(groupName) ?? { points: 0, sessions: 0 };
@@ -335,12 +334,6 @@ export function MyInfoPage() {
         </Card>
 
         <Box sx={{ display: 'grid', width: '100%', gap: 1.25 }}>
-          <Card variant="outlined">
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography color="text.secondary">Total EXP received</Typography>
-              <Typography variant="h2">{totalPoints} EXP</Typography>
-            </CardContent>
-          </Card>
           {Array.from(groupXp.entries()).map(([groupName, summary]) => (
             <Card key={groupName} variant="outlined">
               <CardContent>

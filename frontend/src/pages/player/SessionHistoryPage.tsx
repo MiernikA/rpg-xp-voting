@@ -20,8 +20,6 @@ export function SessionHistoryPage() {
 
   if (isLoading || !data || !auth) return <LoadingState />;
 
-  const playedSessions = data.history.filter((session) => session.participated && session.points_received > 0);
-  const totalPoints = playedSessions.reduce((sum, session) => sum + session.points_received, 0);
   const sessionsByGroup = data.history.reduce((groups, session) => {
     const groupName = session.group_name ?? 'No group';
     const sessions = groups.get(groupName) ?? [];
@@ -58,12 +56,12 @@ export function SessionHistoryPage() {
           <CardContent>
             <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
               <Box>
-                <Typography color="text.secondary">Sessions played</Typography>
-                <Typography variant="h2">{playedSessions.length}</Typography>
+                <Typography color="text.secondary">Sessions played · {activeGroup ?? 'No group'}</Typography>
+                <Typography variant="h2">{activeGroupPlayedSessions.length}</Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
-                <Typography color="text.secondary">Total EXP received</Typography>
-                <Typography variant="h2">{totalPoints}</Typography>
+                <Typography color="text.secondary">EXP received · {activeGroup ?? 'No group'}</Typography>
+                <Typography variant="h2">{activeGroupPoints}</Typography>
               </Box>
             </Stack>
           </CardContent>
