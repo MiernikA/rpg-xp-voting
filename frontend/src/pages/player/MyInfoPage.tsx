@@ -152,6 +152,14 @@ export function MyInfoPage() {
   if (isLoading || !data) return <LoadingState />;
 
   const totalPoints = data.history.reduce((sum, row) => sum + row.points_received, 0);
+  const groupXp = data.history.reduce((groups, session) => {
+    const groupName = session.group_name ?? 'No group';
+    const current = groups.get(groupName) ?? { points: 0, sessions: 0 };
+    current.points += session.points_received;
+    if (session.participated) current.sessions += 1;
+    groups.set(groupName, current);
+    return groups;
+  }, new Map<string, { points: number; sessions: number }>());
   const activePalette = paperPalettes.find(
     (palette) =>
       palette.primary === themePrimary &&
@@ -326,18 +334,28 @@ export function MyInfoPage() {
           </CardContent>
         </Card>
 
-        <Box
-          sx={{
-            display: 'grid',
-            width: '100%',
-          }}
-        >
+        <Box sx={{ display: 'grid', width: '100%', gap: 1.25 }}>
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
-              <Typography color="text.secondary">Total points received</Typography>
-              <Typography variant="h2">{totalPoints}</Typography>
+              <Typography color="text.secondary">Total EXP received</Typography>
+              <Typography variant="h2">{totalPoints} EXP</Typography>
             </CardContent>
           </Card>
+          {Array.from(groupXp.entries()).map(([groupName, summary]) => (
+            <Card key={groupName} variant="outlined">
+              <CardContent>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography fontWeight={900} noWrap>{groupName}</Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      {summary.sessions} played {summary.sessions === 1 ? 'session' : 'sessions'}
+                    </Typography>
+                  </Box>
+                  <Typography variant="h3" sx={{ flex: '0 0 auto' }}>{summary.points} EXP</Typography>
+                </Stack>
+              </CardContent>
+            </Card>
+          ))}
         </Box>
 
         <Card variant="outlined">

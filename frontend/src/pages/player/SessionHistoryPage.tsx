@@ -21,6 +21,13 @@ export function SessionHistoryPage() {
 
   const playedSessions = data.history.filter((session) => session.participated && session.points_received > 0);
   const totalPoints = playedSessions.reduce((sum, session) => sum + session.points_received, 0);
+  const sessionsByGroup = data.history.reduce((groups, session) => {
+    const groupName = session.group_name ?? 'No group';
+    const sessions = groups.get(groupName) ?? [];
+    sessions.push(session);
+    groups.set(groupName, sessions);
+    return groups;
+  }, new Map<string, typeof data.history>());
 
   const toggleComments = (sessionId: number) => {
     setExpandedSessionIds((current) =>
@@ -64,8 +71,27 @@ export function SessionHistoryPage() {
           </Card>
         )}
 
-        <Stack spacing={1}>
-        {data.history.map((session) => {
+        <Stack spacing={2.5}>
+        {Array.from(sessionsByGroup.entries()).map(([groupName, groupSessions]) => {
+          const groupPlayedSessions = groupSessions.filter((session) => session.participated);
+          const groupPoints = groupPlayedSessions.reduce((sum, session) => sum + session.points_received, 0);
+
+          return (
+          <Stack key={groupName} spacing={1}>
+            <Card variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.88)' }}>
+              <CardContent sx={{ py: 1.75, '&:last-child': { pb: 1.75 } }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h3" noWrap>{groupName}</Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      {groupPlayedSessions.length} of {groupSessions.length} sessions played
+                    </Typography>
+                  </Box>
+                  <Chip label={`${groupPoints} EXP`} color="primary" sx={{ flex: '0 0 auto', fontWeight: 900 }} />
+                </Stack>
+              </CardContent>
+            </Card>
+          {groupSessions.map((session) => {
           const comments = orderCommentsForPlayer(
             session.comments,
             auth.user.id,
@@ -158,6 +184,9 @@ export function SessionHistoryPage() {
                 </Stack>
               </CardContent>
             </Card>
+          );
+        })}
+          </Stack>
           );
         })}
         </Stack>
